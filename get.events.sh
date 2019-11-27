@@ -12,16 +12,19 @@
 # API key must be encoded to base64 with the prefix APIKEY:
 # For example, APIKEY:WFVHjqxMsz9k637XCI64bEahTmO7gjv
 #
-tmp=working
+tmp=tmp
 getReg=false
+eventFilter=""
+tagFilter=""
 setup ()
 {
 #
 #--------------------------------------------------------- 
 # Set up working directory
 #
-rm -r $tmp
-mkdir -p $tmp
+    mkdir -p $tmp
+    touch $tmp/tmp.tmp
+    rm $tmp/*
 #
 } # end setup
 # 
@@ -35,15 +38,29 @@ curl -s  --header "Content-Type:application/x-www-form-urlencoded" \
 thisAuth=$(jq -r '.access_token' $tmp/token.json)
 #
 }
+getEvents ()
+{
+    case $# in
+	 0) filterString=""
+	    ;;
+	 1) filterString="?$filter=$1"
+	    ;;
+	 2) filterString="?filter=$1 AND $2"
+	    ;;
+	 *)
+	     echo "Bad number of parameters"
+    esac
+    
+curl -s --header "Authorization: Bearer $thisAuth"\
+     'https://api.wildapricot.org/v2.1/accounts/'"$WA_account"'/Events'$filterString -o $tmp/events.json
+jq '.[] | sort_by(.Name) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
+}
 
 #--------------------------------------------------------- 
 # Loop through the events and get the details and registrations
 #
 mungFiles ()
 {
-curl -s --header "Authorization: Bearer $thisAuth"\
-     'https://api.wildapricot.org/v2.1/accounts/'"$WA_account"'/Events'$filter -o $tmp/events.json
-jq '.[] | sort_by(.Name) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
 #
 while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
 #    echo "Got this event $thisEvent"
@@ -65,7 +82,7 @@ getHelp() {
     printf "%s\n" "Usage:"
     printf "%s\n" "-u Get upcoming events"
     printf "%s\n" "-t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\""
-    printf "%s\n" "-r Get registration: y/n. Default is y"
+    printf "%s\n" "-r Get registration. Default is 'no'."
     printf "%s\n" "-h Prints this message"
     exit
     }
@@ -77,14 +94,14 @@ while getopts "ue:t:hr" opt; do
 	    ;;
 	u ) # Get Upcoming Events
 	    echo "Getting upcoming events"
-	    filter='?$filter=IsUpcoming%20eq%20true'
+	    eventFilter='IsUpcoming%20eq%20true'
 	    ;;
 	r ) # Do we need registrations
 	    getReg=true
 	    ;;
 	t ) # Tags
 	    tags=$OPTARG
-	    filter="?\$filter=Tags%20in%20%5B$tags%5D"
+	    tagFilter="Tags%20in%20%5B$tags%5D"
 	    ;;
 	h) # Print help and exit
 	    getHelp
@@ -101,4 +118,7 @@ done
 setup
 getAuth
 echo "Getting events, putting details in $tmp"
-mungFiles 
+getEvents $tagFilter $eventFilter
+if [ $getReg = "true" ]; then
+   mungFiles
+   fi 
