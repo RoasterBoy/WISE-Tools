@@ -1,2 +1,2 @@
-# wa.api
+# WISE Tools
 Scripts that use the Wild Apricot API to retrieve information about events and contacts
