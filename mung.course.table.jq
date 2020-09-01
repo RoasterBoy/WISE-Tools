@@ -1,0 +1,1 @@
+.Events[] | if .Sessions[0]? then ([(.Sessions[] |.StartDate) | strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %d,") ]| join(" ") | rtrimstr(",")) else empty end'

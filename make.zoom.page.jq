@@ -1,0 +1,1 @@
+.| ["<H2>" + .topic + "</h2>", "<p><a href=\""+ .join_url + "\">", .join_url + "</a>", "<br/>" + (.agenda | sub( "\n"; "<br/>")), "<br/>Alternate hosts: " + .settings.alternative_hosts , "<p>Phone: " + .settings.global_dial_in_numbers[1].number, "<br/>Meeting id: " + (.id | tostring) , "<br/>Password: " +.password + "<p><b>Class times: </b>"] | @tsv

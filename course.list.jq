@@ -1,0 +1,1 @@
+"https://assumptionwise.org/event-" as $orgUrl | .Events |=sort_by(.StartDate) | .Events[] | if (.Tags[]|select(. == "fall")) then "<h1><a href=\"" + $orgUrl + (.Id | tostring) + "\">" + .Name + "</a></h1>", .Location + "<br/>", ([(.Sessions[] |.StartDate)| strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %e,") ]| join(" ") | rtrimstr(",")) else empty   end
