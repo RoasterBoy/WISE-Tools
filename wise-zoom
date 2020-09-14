@@ -17,7 +17,8 @@ msg()
 setup()
 {
     msg "Doing setup"
-    thisAuth=$(python $tools/get.auth.py)
+    thisDir=$(cd `dirname $0` && pwd)
+    thisAuth=$(python $thisDir/get.auth.py)
     tmp=/tmp/zoom
     :>just.links.tsv
     case ${meetingType} in
@@ -127,12 +128,12 @@ doCourse()
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
 	
-	thisLink=$(jq -r -f $tools/make.course.links.jq $file)
+	thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	echo "$thisLink	$theseTimes" >> just.links.tsv
     done
     sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $tools/zoom.courses.awk sorted.links.txt >> $linkFile
+    gawk -F '\t' -f $thisDir/zoom.courses.awk sorted.links.txt >> $linkFile
     msg "Output file is $linkFile"
 }
 doClub()
@@ -145,12 +146,12 @@ doClub()
     do
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f $tools/make.zoom.links.jq $file)
+	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	echo "$thisLink $theseTimes" >> just.links.tsv
     done
     sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $tools/zoom.clubs.awk sorted.links.txt >> $linkFile
+    gawk -F '\t' -f $thisDir/zoom.clubs.awk sorted.links.txt >> $linkFile
     msg "Link file is $linkFile"
 }
 doCommittee()
@@ -161,12 +162,12 @@ doCommittee()
     do
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f $tools/make.zoom.links.jq $file)
+	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	echo "$thisLink $theseTimes" >> just.links.tsv
     done
     sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $tools/zoom.clubs.awk sorted.links.txt >> $linkFile
+    gawk -F '\t' -f $thisDir/zoom.clubs.awk sorted.links.txt >> $linkFile
     msg "Link file is $linkFile"
 }
 doEvent()
@@ -180,13 +181,13 @@ doEvent()
     do
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f $tools/make.zoom.links.jq $file)
+	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 #	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	theseTimes=$(jq -r '.start_time ' $file )
 	echo "$thisLink $theseTimes" >> just.links.tsv
     done
     sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $tools/zoom.clubs.awk sorted.links.txt >> $linkFile
+    gawk -F '\t' -f $thisDir/zoom.clubs.awk sorted.links.txt >> $linkFile
     msg "Link file is $linkFile"
 }
 doRecording()
@@ -213,11 +214,11 @@ doRecording()
 
     for rec in $tmp/*.recording.json;
     do
-	jq -r -f $tools/get.zoom.recordings.jq $rec >> just.links.tsv
+	jq -r -f $thisDir/get.zoom.recordings.jq $rec >> just.links.tsv
 	#
 #	donde
     done
-    gawk -F '\t' -f $tools/zoom.recordings.awk just.links.tsv >> $linkFile
+    gawk -F '\t' -f $thisDir/zoom.recordings.awk just.links.tsv >> $linkFile
     msg "Output file is $linkFile"
 	    
 }
