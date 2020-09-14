@@ -1,0 +1,1 @@
+.occurrences[] | select(.status == "available")  | .start_time

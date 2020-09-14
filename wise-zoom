@@ -1,0 +1,288 @@
+#!/bin/bash
+# Parse options to the `zoom` command
+help()
+{
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*### ?//;T;p' "$thisScript"
+    exit
+}
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	thisString=$@
+	echo "%% $thisString"
+    fi
+}
+setup()
+{
+    msg "Doing setup"
+    thisAuth=$(python $tools/get.auth.py)
+    tmp=/tmp/zoom
+    :>just.links.tsv
+    case ${meetingType} in
+	Course)
+	    title="Zoom Links for Courses"
+	    ;;
+	Club)
+	    title="Zoom Links for Club Meetings"
+	    ;;
+	Committee)
+	    title="Zoom Links for Committee Meetings"
+	    ;;
+	Event)
+	    title="Zoom Links for Events"
+	    ;;
+	Recording)
+	    title="Recordings for $MeetingType"
+	    ;;
+	*)
+	    title=$meetingType
+	    ;;
+    esac
+    linkFile=$meetingType.links.html
+    :>$linkFile
+    echo "<h2>$title</h2>" > $linkFile
+
+    thisDate=$(date)
+    echo "<p>Updated: $thisDate" >> $linkFile
+
+}
+init()
+{
+    if [[ "$init" = false ]] ; then
+	msg "Skipping initialization" 
+	return
+    fi
+    echo "Doing initialization"
+#    return
+    mkdir -p $tmp
+    touch $tmp/tmp.tmp
+    rm -r $tmp/*
+    :>sorted.links.txt
+}
+getMeetings()
+{
+    if [[ "$init" = false ]] ; then
+	msg "Skipping update of meeting"
+	return
+    fi
+    if [[ "$getAll" = true ]]; then
+	retrieveType="scheduled"
+    else
+	retrieveType="upcoming"	
+    fi
+	msg "Getting all meetings that are $retrieveType"
+	hostList=$(get.zoom.hosts.sh)
+	while IFS='' read -r thisHost ; do
+	    msg "Working on meetings for $thisHost"
+	    # Removed this from curl &occurrence_id=%3Cstring%3E
+	    curl -s --location --request GET \
+		 'https://api.zoom.us/v2/users/'$thisHost'/meetings?page_size=300&type='$retrieveType \
+		 --header 'Authorization: Bearer '$thisAuth\
+		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisHost.info.json 
+	done < $hostList
+    jq --slurp ' .[] | .meetings[].id' /tmp/zoom/*info.json  > $tmp/all.meetings.list
+    cat $tmp/all.meetings.list  | sort --unique > $tmp/meetings.list
+}
+meetingBasics()
+{
+    thisType=$1
+    msg "Working on $thisType right now"
+    getMeetings
+    while IFS='' read -r thisItem ; do
+	if [[ "$init" = false ]] ; then
+	    msg "Skipping update of $thisType details"
+	else
+	    # Do we need '?occurrence_id=%3Cstring%3E' in url?
+	    # Do we need cookie?
+	    curl -s --location --request GET \
+		 'https://api.zoom.us/v2/meetings/'$thisItem \
+		 --header 'Authorization: Bearer '$thisAuth\
+#		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' \
+		 -o $tmp/$thisItem-details.json 
+	fi
+	gotItem=$(jq --arg TYPE "$thisType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisItem-details.json)
+	gotTopic=$(jq --arg TYPE "$thisType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisItem-details.json)
+	if [[ $gotItem = "" ]] ; then
+	    # msg "No $thisType found" 
+	    mv $tmp/$thisItem-details.json $tmp/$thisItem-details.json-null
+	else
+	    msg "Got $gotTopic"
+	fi
+	
+    done < $tmp/meetings.list
+
+}
+
+doCourse()
+{
+    properName=$1
+    msg "Geting recordings for $properName"
+    meetingBasics Course
+    #
+
+    for file in $tmp/*-details.json;
+    do
+	thisTopic=$(jq '.topic' $file)
+	msg "Deep Work on $thisTopic"
+	
+	thisLink=$(jq -r -f $tools/make.course.links.jq $file)
+	theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink	$theseTimes" >> just.links.tsv
+    done
+    sort --version-sort just.links.tsv > sorted.links.txt
+    gawk -F '\t' -f $tools/zoom.courses.awk sorted.links.txt >> $linkFile
+    msg "Output file is $linkFile"
+}
+doClub()
+{
+    properName=$1
+    msg "Geting recordings for $properName"
+    meetingBasics
+    
+    for file in $tmp/*-details.json;
+    do
+	thisTopic=$(jq '.topic' $file)
+	msg "Deep Work on $thisTopic"
+	thisLink=$(jq -r -f $tools/make.zoom.links.jq $file)
+	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink $theseTimes" >> just.links.tsv
+    done
+    sort --version-sort just.links.tsv > sorted.links.txt
+    gawk -F '\t' -f $tools/zoom.clubs.awk sorted.links.txt >> $linkFile
+    msg "Link file is $linkFile"
+}
+doCommittee()
+{
+    meetingBasics "Committee Meeting"
+    
+    for file in $tmp/*-details.json;
+    do
+	thisTopic=$(jq '.topic' $file)
+	msg "Deep Work on $thisTopic"
+	thisLink=$(jq -r -f $tools/make.zoom.links.jq $file)
+	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink $theseTimes" >> just.links.tsv
+    done
+    sort --version-sort just.links.tsv > sorted.links.txt
+    gawk -F '\t' -f $tools/zoom.clubs.awk sorted.links.txt >> $linkFile
+    msg "Link file is $linkFile"
+}
+doEvent()
+{
+    properName=$1
+    msg "Geting recordings for $properName"
+   
+    meetingBasics Event
+    
+    for file in $tmp/*-details.json;
+    do
+	thisTopic=$(jq '.topic' $file)
+	msg "Deep Work on $thisTopic"
+	thisLink=$(jq -r -f $tools/make.zoom.links.jq $file)
+#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	theseTimes=$(jq -r '.start_time ' $file )
+	echo "$thisLink $theseTimes" >> just.links.tsv
+    done
+    sort --version-sort just.links.tsv > sorted.links.txt
+    gawk -F '\t' -f $tools/zoom.clubs.awk sorted.links.txt >> $linkFile
+    msg "Link file is $linkFile"
+}
+doRecording()
+{
+    properName=$1
+    msg "Geting recordings for $properName"
+    meetingType=$thisMeetingType
+    meetingBasics $thisMeetingType
+    for file in $tmp/*-details.json;
+    do
+	thisId=$(jq '.id' $file)
+	thisTopic=$(jq '.topic' $file)
+	msg "Inspecting $thisTopic"
+	echo $thisId >> $tmp/recording.list
+    done
+    msg "Fetching recordings..."
+
+    while IFS='' read -r thisMtg ; do
+	curl -s --location --request GET \
+	     'https://api.zoom.us/v2/meetings/'$thisMtg'/recordings' \
+	     --header 'Authorization: Bearer '$thisAuth \
+	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisMtg.recording.json 
+    done < $tmp/recording.list
+
+    for rec in $tmp/*.recording.json;
+    do
+	jq -r -f $tools/get.zoom.recordings.jq $rec >> just.links.tsv
+	#
+#	donde
+    done
+    gawk -F '\t' -f $tools/zoom.recordings.awk just.links.tsv >> $linkFile
+    msg "Output file is $linkFile"
+	    
+}
+
+while getopts ":r:t:nhv" opt; do
+    case ${opt} in
+	r )
+	    ### -r Get recordings for Meeting type, see below
+	    getAll=true
+	    getRecordings=true
+	    thisMeetingType=$OPTARG
+	    meetingType=Recordings
+	    cmd=Recording
+	;;
+	t )
+	    ### -t Zoom meeting type
+	    meetingType=$OPTARG
+	    case "$meetingType" in
+		
+		Course)
+		    ###        Courses
+		    thisType="Course"
+		    cmd="Course"
+		;;
+		Committee)
+		    ###        Committees
+		    thisType="Committee Meeting"
+		    ;;
+		Event)
+		    ###        Events
+		    thisType="Events"
+		    cmd=Event
+		    getAll=true
+		    ;;
+		Club)
+		    ###        Clubs
+		    thisType="Club Meeting"
+		    cmd=Club
+		    ;;
+		* )
+		    echo "%% Invalid meeting type : $OPTARG"
+		    help
+		    ;;
+	    esac
+	    ;;
+	n )
+	    ### -n Don't initialize, i.e., don't delete contents of /tmp/zoom
+	    init=false
+	    ;;
+	h )
+	    ### -h Print help and exits
+	    help
+	    ;;
+	v )
+	    ### -v Set verbose mode
+	    verbose="true"
+	    ;;
+	* )
+	    echo "Invalid Option: -$OPTARG" 1>&2
+	    exit 1
+	    ;;
+    esac
+done
+echo "Will do $thisType"
+setup
+init
+echo "Got $cmd here"
+do$cmd "$thisType"
