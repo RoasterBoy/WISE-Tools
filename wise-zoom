@@ -20,7 +20,9 @@ setup()
     thisDir=$(cd `dirname $0` && pwd)
     thisAuth=$(python $thisDir/get.auth.py)
     tmp=/tmp/zoom
-    :>just.links.tsv
+    justLinks=$tmp/just.links.tsv
+    :>$justLinks
+    sortedLinks=$tmp/sorted.lnks.txt
     case ${meetingType} in
 	Course)
 	    title="Zoom Links for Courses"
@@ -41,13 +43,6 @@ setup()
 	    title=$meetingType
 	    ;;
     esac
-    linkFile=$meetingType.links.html
-    :>$linkFile
-    echo "<h2>$title</h2>" > $linkFile
-
-    thisDate=$(date)
-    echo "<p>Updated: $thisDate" >> $linkFile
-
 }
 init()
 {
@@ -60,7 +55,14 @@ init()
     mkdir -p $tmp
     touch $tmp/tmp.tmp
     rm -r $tmp/*
-    :>sorted.links.txt
+    :>$sortedLinks
+    linkFile=$tmp/$meetingType.links.html
+    :>$linkFile
+    echo "<h2>$title</h2>" > $linkFile
+    thisDate=$(date)
+    echo "<p>Updated: $thisDate" >> $linkFile
+
+
 }
 getMeetings()
 {
@@ -130,10 +132,10 @@ doCourse()
 	
 	thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink	$theseTimes" >> just.links.tsv
+	echo "$thisLink	$theseTimes" >> $justLlinks
     done
-    sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $thisDir/zoom.courses.awk sorted.links.txt >> $linkFile
+    sort --version-sort just.links.tsv > $sortedLinks
+    gawk -F '\t' -f $thisDir/zoom.courses.awk $sortedLinks >> $linkFile
     msg "Output file is $linkFile"
 }
 doClub()
@@ -148,10 +150,10 @@ doClub()
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> just.links.tsv
+	echo "$thisLink $theseTimes" >> $justLlinks
     done
-    sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $thisDir/zoom.clubs.awk sorted.links.txt >> $linkFile
+    sort --version-sort just.links.tsv > $sortedLinks
+    gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $linkFile
     msg "Link file is $linkFile"
 }
 doCommittee()
@@ -164,10 +166,10 @@ doCommittee()
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> just.links.tsv
+	echo "$thisLink $theseTimes" >> $justLlinks
     done
-    sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $thisDir/zoom.clubs.awk sorted.links.txt >> $linkFile
+    sort --version-sort just.links.tsv > $sortedLinks
+    gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $linkFile
     msg "Link file is $linkFile"
 }
 doEvent()
@@ -184,10 +186,10 @@ doEvent()
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 #	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	theseTimes=$(jq -r '.start_time ' $file )
-	echo "$thisLink $theseTimes" >> just.links.tsv
+	echo "$thisLink $theseTimes" >> $justLlinks
     done
-    sort --version-sort just.links.tsv > sorted.links.txt
-    gawk -F '\t' -f $thisDir/zoom.clubs.awk sorted.links.txt >> $linkFile
+    sort --version-sort just.links.tsv > $sortedLinks
+    gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $linkFile
     msg "Link file is $linkFile"
 }
 doRecording()
@@ -214,11 +216,11 @@ doRecording()
 
     for rec in $tmp/*.recording.json;
     do
-	jq -r -f $thisDir/get.zoom.recordings.jq $rec >> just.links.tsv
+	jq -r -f $thisDir/get.zoom.recordings.jq $rec >> $justLlinks
 	#
 #	donde
     done
-    gawk -F '\t' -f $thisDir/zoom.recordings.awk just.links.tsv >> $linkFile
+    gawk -F '\t' -f $thisDir/zoom.recordings.awk $justLlinks >> $linkFile
     msg "Output file is $linkFile"
 	    
 }
