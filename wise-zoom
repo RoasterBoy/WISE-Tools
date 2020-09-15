@@ -50,7 +50,7 @@ init()
 	msg "Skipping initialization" 
 	return
     fi
-    echo "Doing initialization"
+    msg "Doing initialization"
 #    return
     mkdir -p $tmp
     touch $tmp/tmp.tmp
@@ -108,8 +108,10 @@ meetingBasics()
 	gotItem=$(jq --arg TYPE "$thisType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisItem-details.json)
 	gotTopic=$(jq --arg TYPE "$thisType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisItem-details.json)
 	if [[ $gotItem = "" ]] ; then
-	    # msg "No $thisType found" 
-	    mv $tmp/$thisItem-details.json $tmp/$thisItem-details.json-null
+	    # msg "No $thisType found"
+	    # Get rid of this file
+	    # mv $tmp/$thisItem-details.json $tmp/$thisItem-details.json-null
+	    rm $tmp/$thisItem-details.json
 	else
 	    msg "Got $gotTopic"
 	fi
@@ -132,7 +134,7 @@ doCourse()
 	
 	thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink	$theseTimes" >> $justLlinks
+	echo "$thisLink	$theseTimes" >> $justLinks
     done
     sort --version-sort just.links.tsv > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.courses.awk $sortedLinks >> $linkFile
@@ -142,7 +144,7 @@ doClub()
 {
     properName=$1
     msg "Geting recordings for $properName"
-    meetingBasics
+    meetingBasics Club
     
     for file in $tmp/*-details.json;
     do
@@ -196,32 +198,49 @@ doRecording()
 {
     properName=$1
     msg "Geting recordings for $properName"
-    meetingType=$thisMeetingType
-    meetingBasics $thisMeetingType
+#    meetingType=$thisMeetingType
+    meetingBasics $thisType
     for file in $tmp/*-details.json;
     do
+	# echo "Getting details for $file"
 	thisId=$(jq '.id' $file)
 	thisTopic=$(jq '.topic' $file)
-	msg "Inspecting $thisTopic"
+	msg "Inspecting this topic: $thisTopic"
 	echo $thisId >> $tmp/recording.list
     done
     msg "Fetching recordings..."
 
     while IFS='' read -r thisMtg ; do
+	# echo "Munching $thisMtg"
 	curl -s --location --request GET \
 	     'https://api.zoom.us/v2/meetings/'$thisMtg'/recordings' \
 	     --header 'Authorization: Bearer '$thisAuth \
-	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisMtg.recording.json 
+	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisMtg.recording.json
+	msg "Also getting participant detail"
+	curl -s --location --request GET \
+	     'https://api.zoom.us/v2/metrics/meetings/'$thisMtg'/participants?type=past' \
+	     --header 'Authorization: Bearer '$thisAuth \
+	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisMtg.participants.json	
     done < $tmp/recording.list
 
     for rec in $tmp/*.recording.json;
     do
-	jq -r -f $thisDir/get.zoom.recordings.jq $rec >> $justLlinks
+	# msg "Working on $rec and buiding $justLinks"
+	jq -r -f $thisDir/get.zoom.recordings.jq $rec >> $justLinks
 	#
-#	donde
     done
-    gawk -F '\t' -f $thisDir/zoom.recordings.awk $justLlinks >> $linkFile
+    echo "ID,Device,Location,Network Type,Microphone,Camera,Speaker, Version" > $tmp/participants.csv
+    for part in $tmp/*participants.json;
+    do
+	jq -r '. | select(.code == null) | .participants[] | [.user_id, .device, .location,.network_type, .microphone, .speaker, .camera, .version] | @csv ' $part >> $tmp/participants.csv
+    done
+    # msg "\$linkFile is $linkFile"
+    # msg "\$justLinks is $justLinks"
+    # $1 is the unix timesamp in $justLinks
+    sort -r $justLinks > $tmp/sorted.links.tsv
+    gawk -F '\t' -f $thisDir/zoom.recordings.awk $tmp/sorted.links.tsv >> $linkFile
     msg "Output file is $linkFile"
+    msg "Partiticapnts\' file is $tmp/partcipants.csv"
 	    
 }
 
@@ -234,28 +253,52 @@ while getopts ":r:t:nhv" opt; do
 	    thisMeetingType=$OPTARG
 	    meetingType=Recordings
 	    cmd=Recording
+#	    echo "Got \$thisMeetingType $thisMeetingType"
+	    case "$thisMeetingType" in
+		[Cc]ourse*)
+		    ###        Courses
+		    thisType="Course"
+#		    cmd="Course"
+		;;
+		[Cc]ommittee*)
+		    ###        Committees
+		    thisType="Committee Meeting"
+		    ;;
+		[Ee]vent*)
+		    ###        Events
+		    thisType="Events"
+#		    cmd=Event
+		    getAll=true
+		    ;;
+		* )
+		    echo "%% Invalid meeting type : $OPTARG"
+		    help
+		    ;;
+	    esac
+
 	;;
 	t )
 	    ### -t Zoom meeting type
 	    meetingType=$OPTARG
+	    # matching upper or lower, singular or plural
+#	    echo "Got type"
 	    case "$meetingType" in
-		
-		Course)
+		[Cc]ourse*)
 		    ###        Courses
 		    thisType="Course"
 		    cmd="Course"
 		;;
-		Committee)
+		[Cc]ommittee*)
 		    ###        Committees
 		    thisType="Committee Meeting"
 		    ;;
-		Event)
+		[Ee]vent*)
 		    ###        Events
 		    thisType="Events"
 		    cmd=Event
 		    getAll=true
 		    ;;
-		Club)
+		[Cc]lub*)
 		    ###        Clubs
 		    thisType="Club Meeting"
 		    cmd=Club
@@ -284,8 +327,8 @@ while getopts ":r:t:nhv" opt; do
 	    ;;
     esac
 done
-echo "Will do $thisType"
+#echo "Will do $thisType"
 setup
 init
-echo "Got $cmd here"
+#echo "Got $cmd here"
 do$cmd "$thisType"
