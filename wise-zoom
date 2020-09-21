@@ -21,7 +21,6 @@ setup()
     thisSub=$2
     thisDir=$(cd `dirname $0` && pwd)
     thisAuth=$(python $thisDir/get.auth.py)
-    tmp=/tmp/zoom
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>$justLinks
@@ -50,9 +49,19 @@ setup()
 	    ;;
     esac
     msg "\$title is $title"
+    HTMLFile=$tmp/$meetingType.links.html
+    msg "Initializing $HTMLFile"
+    :>$HTMLFile
+    echo "<h2>$title</h2>" > $HTMLFile
+    thisDate=$(date)
+    echo "<p>Updated: $thisDate" >> $HTMLFile
+
+
+
 }
 init()
 {
+    tmp=~/tmp/zoom
     meetingType=$1
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
@@ -63,15 +72,6 @@ init()
     mkdir -p $tmp
     touch $tmp/tmp.tmp
     rm -r $tmp/*
-    HTMLFile=$tmp/$meetingType.links.html
-        msg "Initializing $HTMLFile"
-
-    :>$HTMLFile
-    echo "<h2>$title</h2>" > $HTMLFile
-    thisDate=$(date)
-    echo "<p>Updated: $thisDate" >> $HTMLFile
-
-
 }
 getMeetings()
 {
@@ -94,7 +94,7 @@ getMeetings()
 		 --header 'Authorization: Bearer '$thisAuth\
 		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisHost.info.json 
 	done < $hostList
-    jq --slurp ' .[] | .meetings[].id' /tmp/zoom/*info.json  > $tmp/all.meetings.list
+    jq --slurp ' .[] | .meetings[].id' $tmp/*info.json  > $tmp/all.meetings.list
     cat $tmp/all.meetings.list  | sort --unique > $tmp/meetings.list
 }
 meetingBasics()
@@ -242,56 +242,57 @@ doRecording()
     recordingLinks=$tmp/recording.links.tsv
     msg "Initializing $recordingLinks"
     :>$recordingLinks
-    :>participant.meetings.list
+    :>$tmp/participant.meetings.list
     for recFile in $tmp/*.recordings.json; do
 	jq  -f $jqFile $recFile >> $recordingLinks
-	jq -r '.id' $recFile >> participant.meetings.list
     done;
 
     msg "Fetching recordings..."
-
-    while IFS='' read -r thisMtg ; do
-	msg "Munching $thisMtg"
-	curl -s --location --request GET \
-	     'https://api.zoom.us/v2/meetings/'$thisMtg'/recordings' \
-	     --header 'Authorization: Bearer '$thisAuth \
-	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisMtg.recording.json
-    done < $tmp/recording.list
 
     for rec in $tmp/*.recordings.json;
     do
 	msg "Working on $rec and buiding $justLinks"
 	jq -r -f $thisDir/get.course.recordings.jq $rec >> $justLinks
+	jq -r -f $thisDir/get.course.participants.jq $rec >> $tmp/participant.meetings.list
 	#
     done
     sort -r $justLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
-    exit
-    # $1 is the unix timesamp in $justLinks
+    #    exit
+    for file in $tmp/*recordings.json; do 
     thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
     theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-            echo "$thisLink $theseTimes" >> $justLinks
+
+    echo "$thisLink $theseTimes" >> $justLinks
+    done
+    # $1 is the unix timesamp in $justLinks
     msg "Output file is $HTMLFile"
     cp -v $HTMLFile .
-	    
+    getParticipants 
+    mungParticipants
 }
-
 getParticipants()
 {
-    msg "Also getting participant detail for $thisMtg"
+    while IFS='' read -r partMtg ; do 
+    msg "Also getting participant detail for this meeting: $partMtg"
     # https://marketplace.zoom.us/docs/api-reference/zoom-api/dashboards/dashboardmeetingparticipants
     curl -s --location --request GET \
-	 'https://api.zoom.us/v2/metrics/meetings/'$thisMtg'/participants?type=past' \
+	 'https://api.zoom.us/v2/metrics/meetings/'$partMtg'/participants?type=past' \
 	 --header 'Authorization: Bearer '$thisAuth \
-	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisMtg.participants.json	
+	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$partMtg.participants.json
+    done < $tmp/participant.meetings.list
+}
+mungParticipants()
+{
+    echo "User,Device,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > $tmp/participants.csv
     for part in $tmp/*participants.json;
     do
-	jq -r '. | select(.code == null) | .participants[] | [.user_id, .device, .location,.network_type, .microphone, .speaker, .camera, .version,.ip_address] | @csv ' $part >> $tmp/participants.csv
+	jq -r '. | select(.code == null) | .participants[] | [.user_name, .device, .location,.network_type, .microphone, .speaker, .camera, .version,.ip_address] | @csv ' $part >> $tmp/participants.csv
     done
     msg "Partiticapnts\' file is $tmp/partcipants.csv"
-    echo "ID,Device,Location,Network Type,Microphone,Camera,Speaker, Version" > $tmp/participants.csv
     ssconvert $tmp/participants.csv participants.xlsx
 
+    
 }
 
 while getopts ":r:t:nhv" opt; do
@@ -359,7 +360,7 @@ while getopts ":r:t:nhv" opt; do
 	    esac
 	    ;;
 	n )
-	    ### -n Don't initialize, i.e., don't delete contents of /tmp/zoom
+	    ### -n Don't initialize, i.e., don't delete contents of ~/tmp/zoom
 	    init=false
 	    ;;
 	h )
@@ -377,7 +378,7 @@ while getopts ":r:t:nhv" opt; do
     esac
 done
 #msg "Will do \$cmd $cmd for \$thisType $thisType"
-setup "$cmd" "$thisType"
 init "$cmd"
+setup "$cmd" "$thisType"
 #echo "Got $cmd here"
 do$cmd  $cmd  "$thisType"
