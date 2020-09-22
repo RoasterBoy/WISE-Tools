@@ -88,7 +88,7 @@ getMeetings()
 	hostList=$(get.zoom.hosts.sh)
 	while IFS='' read -r thisHost ; do
 	    msg "Working on meetings for $thisHost"
-	    # Removed this from curl &occurrence_id=%3Cstring%3E
+
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/users/'$thisHost'/meetings?page_size=300&type='$retrieveType \
 		 --header 'Authorization: Bearer '$thisAuth\
@@ -102,7 +102,7 @@ meetingBasics()
     thisType=$1
     msg "Working on $thisType right now"
     msg "Initializing $thisType.list"
-    thisTypeList=$thisType.list
+    thisTypeList=$tmp/$thisType.list
     :> $thisTypeList
     getMeetings
     if [[ ${thisType: -1} = "s" ]]; then
@@ -216,33 +216,32 @@ doRecording()
     meetingType=$2
     msg "Geting recordings for $meetingType"
     hostList=$(get.zoom.hosts.sh)
-    if [[ $meetingType = "Courses" ]]; then
-	msg "Munging all recordings"
-	jqFile=get.course.recordings.jq
-    else
-	meetingBasics $meetingType # returns $gThisList
-    for file in $tmp/*.details.json;
-    do
-	# echo "Getting details for $file"
-	thisId=$(jq '.id' $file)
-	thisTopic=$(jq '.topic' $file)
-	msg "Inspecting this topic: $thisTopic"
-	echo $thisId >> $tmp/recording.list
-    done
-    fi
-
-    while IFS='' read -r thisHost ; do
-	msg "Working on recordings for $thisHost"
-	### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
-	curl -s --location --request GET \
-	     'https://api.zoom.us/v2/users/'$thisHost'/recordings?page_size=300&t&from=2020-09-01' \
+    # Get all events of $meetingType
+    meetingBasics $meetingType # returns $gThisList    # get IDs of these events
+    ### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
+    while IFS='' read -r thisHost; do
+	curl -s --request GET \
+	     'https://api.zoom.us/v2/users/'$thisHost'/recordings?page_size=300&from=2020-09-10' \
 	     --header 'Authorization: Bearer '$thisAuth \
-	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisHost.recordings.json	
+	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisHost.recordings.json
+	
     done < $hostList
     recordingLinks=$tmp/recording.links.tsv
     msg "Initializing $recordingLinks"
     :>$recordingLinks
-    :>$tmp/participant.meetings.list
+    jq -s '.' $tmp/*recordings.json > big.json
+    while IFS='' read thisItem; do
+	jq --arg ID $thisItem -f get.recording.links.jq big.json >> $recordingLinks
+    done < $gThisList
+    sort -r $recordingLinks > $sortedLinks
+    gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
+    msg "Output file is $HTMLFile"
+
+#here
+    
+    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
+    mungParticipants
+    exit
     for recFile in $tmp/*.recordings.json; do
 	jq  -f $jqFile $recFile >> $recordingLinks
     done;
@@ -256,20 +255,16 @@ doRecording()
 	jq -r -f $thisDir/get.course.participants.jq $rec >> $tmp/participant.meetings.list
 	#
     done
-    sort -r $justLinks > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
     #    exit
-    for file in $tmp/*recordings.json; do 
+    for file in $tmp/*recordings.json; do
+	msg "Getting stuff from this file $file"
     thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
-    theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+    theseTimes=$(jq -r -f $thisDir/get.course.times.jq $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 
     echo "$thisLink $theseTimes" >> $justLinks
     done
     # $1 is the unix timesamp in $justLinks
-    msg "Output file is $HTMLFile"
     cp -v $HTMLFile .
-    getParticipants 
-    mungParticipants
 }
 getParticipants()
 {
@@ -280,7 +275,7 @@ getParticipants()
 	 'https://api.zoom.us/v2/metrics/meetings/'$partMtg'/participants?type=past' \
 	 --header 'Authorization: Bearer '$thisAuth \
 	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$partMtg.participants.json
-    done < $tmp/participant.meetings.list
+    done < $gThisList
 }
 mungParticipants()
 {
@@ -304,7 +299,6 @@ while getopts ":r:t:nhv" opt; do
 	    subCmd=$OPTARG
 	    meetingType=Recordings
 	    cmd=Recording
-	    getAll=true
 #	    echo "Got \$thisMeetingType $thisMeetingType"
 	    case "$subCmd" in
 		[Cc]ourse*)
@@ -380,5 +374,5 @@ done
 #msg "Will do \$cmd $cmd for \$thisType $thisType"
 init "$cmd"
 setup "$cmd" "$thisType"
-#echo "Got $cmd here"
+echo "Got $cmd here"
 do$cmd  $cmd  "$thisType"
