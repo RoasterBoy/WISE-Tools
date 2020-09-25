@@ -1,1 +1,1 @@
-.| [.topic, .join_url, (.agenda | sub( "\n"; "<br/>")) , .settings.global_dial_in_numbers[1].number,(.id | tostring) ,.password, (Alternate Hosts: " +.settings.alternative_hosts | sub(",";"<br/>")] | @tsv
+. |[.topic, .join_url, (.agenda | sub( "\n"; "<br/>")), .settings.global_dial_in_numbers[].number, (.id | tostring), .password, (.settings.alternative_hosts | if length != 0 then "Alternate host(s):" + . else empty end | sub(",";"<br/>") )]  | @tsv

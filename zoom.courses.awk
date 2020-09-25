@@ -7,7 +7,7 @@ BEGIN {}
     printf "<br>Phone: %s", $4
     printf "<br>Meeting ID: %s", $5
     printf "<br>Password: %s", $6
-    printf "<br/>%s" , $7
+    if (length($7) != 0) printf "<br/>%s" , $7
     {for(i=8; i<=NF; i++) printf "<br>%s\n", $i}
 }
 END{}
