@@ -1,6 +1,8 @@
 #!/bin/bash
 # Parse options to the `zoom` command
 set -e
+start_time="$(date -u +%s)"
+simple=false
 help()
 {
     thisScript=$(which "$0")
@@ -11,13 +13,13 @@ msg()
 {
     if [  "$verbose" = true ];
     then
-	thisString=$@
-	echo "%% $thisString"
+	msgString=$@
+	echo "%% $msgString"
     fi
 }
 setup()
 {
-    meetingType=$1
+    rptType=$1
     thisSub=$2
     thisDir=$(cd `dirname $0` && pwd)
     thisAuth=$(python $thisDir/get.auth.py)
@@ -25,44 +27,41 @@ setup()
     msg "Initializing $justLinks"
     :>$justLinks
     sortedLinks=$tmp/sorted.links.tsv
-    msg "Initializing $sortedLinks"
-    :>$sortedLinks
-    msg "Doing setup for $meetingType and $thisSub"
-    case "$meetingType" in
+    msg "Doing setup for \$rptType $rptType and \$thisSub $thisSub"
+    case "$rptType" in
 	[Cc]ourse*)
 	    title="Zoom Links for Courses"
 	    ;;
-	[Cc]lub[s]*)
+	[Cc]lub*)
 	    title="Zoom Links for Club Meetings"
 	    ;;
-	[Cc]ommittee[s]*)
+	[Cc]ommittee*)
 	    title="Zoom Links for Committee Meetings"
 	    ;;
-	[Ee]vent[s]*)
+	[Ee]vent*)
 	    title="Zoom Links for Events"
 	    ;;
 	[Rr]ecording*)
 	    title="Recordings for $thisSub"
 	    ;;
 	*)
-	    title=$meetingType
+	    title=$rptType
 	    ;;
     esac
     msg "\$title is $title"
-    HTMLFile=$tmp/$meetingType.links.html
+    HTMLFile=$tmp/$rptType.links.html
     msg "Initializing $HTMLFile"
     :>$HTMLFile
-    echo "<h2>$title</h2>" > $HTMLFile
+    if [[ $simple = "false" ]]; then
+	echo "<h2>$title</h2>" > $HTMLFile
     thisDate=$(date)
     echo "<p>Updated: $thisDate" >> $HTMLFile
-
-
-
+    fi
 }
 init()
 {
     tmp=~/tmp/zoom
-    meetingType=$1
+    rptType=$1
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
 	return
@@ -99,19 +98,19 @@ getMeetings()
 }
 meetingBasics()
 {
-    thisType=$1
-    msg "Working on $thisType right now"
-    msg "Initializing $thisType.list"
-    thisTypeList=$tmp/$thisType.list
-    :> $thisTypeList
+    tmpType=$1
+    msg "Working on $mtgType right now"
+    msg "Initializing $tmpType.list"
+    tmpTypeList=$tmp/$tmpType.list
+    :> $tmpTypeList
     getMeetings
-    if [[ ${thisType: -1} = "s" ]]; then
-	thisType=${thisType%?}
+    if [[ ${tmpType: -1} = "s" ]]; then
+	tmpType=${tmpType%?}
     fi
 
     while IFS='' read -r thisMtg ; do
 	if [[ "$init" = false ]] ; then
-	    msg "Skipping update of $thisType details"
+	    msg "Skipping update of $tmpType details"
 	else
 	    # Do we need '?occurrence_id=%3Cstring%3E' in url?
 	    # Do we need cookie?
@@ -121,21 +120,21 @@ meetingBasics()
 #		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' \
 		 -o $tmp/$thisMtg.details.json 
 	fi
-	gotItem=$(jq --arg TYPE "$thisType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisMtg.details.json)
-	gotTopic=$(jq --arg TYPE "$thisType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisMtg.details.json)
+	gotItem=$(jq --arg TYPE "$tmpType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisMtg.details.json)
+	gotTopic=$(jq --arg TYPE "$tmpType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisMtg.details.json)
 	if [[ $gotItem = "" ]] ; then
-	    # msg "No $thisType found"
+	    # msg "No $tmpType found"
 	    # Get rid of this file
-	    # mv $tmp/$thisMtg.details.json $tmp/$thisMtg.details.json-null
-	    rm $tmp/$thisMtg.details.json
+	     mv $tmp/$thisMtg.details.json $tmp/$thisMtg.details.json-null
+	    #rm $tmp/$thisMtg.details.json
 	else
 	    msg "Got $gotTopic"
-	    echo $gotItem >> $thisTypeList 
+	    echo $gotItem >> $tmpTypeList 
 	fi
 	
     done < $tmp/meetings.list
-    
-    gThisList=$thisTypeList # return name of the meeting type list
+
+    gThisList=$tmpTypeList # return name of the meeting type list
 }
 
 doCourse()
@@ -148,30 +147,43 @@ doCourse()
     do
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
-	
-	thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
-	theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	if [[ $simple = "true" ]]; then
+	    jqFile=$thisDir/make.simple.course.links.jq
+	    theseTime=""
+	else
+	    jqFile=$thisDir/make.course.links.jq
+	    theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	fi
+	thisLink=$(jq -r -f $jqFile $file)
 	echo "$thisLink	$theseTimes" >> $justLinks
     done
-    sort --version-sort $justLinks > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.courses.awk $sortedLinks >> $HTMLFile
-    msg "Output file is $HTMLFile"
+    msg "Initializing $sortedLinks"
+    :>$sortedLinks
+    if [[ $simple = "true" ]]; then
+	printf "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > $sortedLinks
+	sort --version-sort $justLinks >> $sortedLinks
+	msg "Sorted links are in $sortedLinks"
+    else
+	sort --version-sort $justLinks >> $sortedLinks
+	gawk -F '\t' -f $thisDir/zoom.courses.awk $sortedLinks >> $HTMLFile
+	msg "Output file is $HTMLFile"
+    fi
 }
 doClub()
 {
     properName=$1
     msg "Geting recordings for $properName"
     meetingBasics Club
-    
+
     for file in $tmp/*.details.json;
     do
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
-	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> $justLlinks
+	theseTimes=$(jq -r -f $thisDir/get.times.jq $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink $theseTimes" >> $justLinks
     done
-    sort --version-sort just.links.tsv > $sortedLinks
+    sort --version-sort $justLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
@@ -187,7 +199,7 @@ doCommittee()
 	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	echo "$thisLink $theseTimes" >> $justLlinks
     done
-    sort --version-sort just.links.tsv > $sortedLinks
+    sort --version-sort $justLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
@@ -205,7 +217,7 @@ doEvent()
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 #	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	theseTimes=$(jq -r '.start_time ' $file )
-	echo "$thisLink $theseTimes" >> $justLlinks
+	echo "$thisLink $theseTimes" >> $justLinks
     done
     sort --version-sort just.links.tsv > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
@@ -213,11 +225,11 @@ doEvent()
 }
 doRecording()
 {
-    meetingType=$2
-    msg "Geting recordings for $meetingType"
+    rptType=$2
+    msg "Geting recordings for $rptType"
     hostList=$(get.zoom.hosts.sh)
-    # Get all events of $meetingType
-    meetingBasics $meetingType # returns $gThisList    # get IDs of these events
+    # Get all events of $rptType
+    meetingBasics $rptType # returns $gThisList    # get IDs of these events
     ### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
     while IFS='' read -r thisHost; do
 	curl -s --request GET \
@@ -229,42 +241,17 @@ doRecording()
     recordingLinks=$tmp/recording.links.tsv
     msg "Initializing $recordingLinks"
     :>$recordingLinks
-    jq -s '.' $tmp/*recordings.json > big.json
-    while IFS='' read thisItem; do
-	jq --arg ID $thisItem -f get.recording.links.jq big.json >> $recordingLinks
+    jq -s '.' $tmp/*recordings.json > $tmp/big.json
+    echo "We have this \$gThisList $gThisList"
+    while IFS='' read -r thisItem; do
+	jq -r --arg ID $thisItem -f get.recording.links.jq $tmp/big.json >> $recordingLinks
     done < $gThisList
     sort -r $recordingLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
     msg "Output file is $HTMLFile"
 
-#here
-    
-    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
-    mungParticipants
-    exit
-    for recFile in $tmp/*.recordings.json; do
-	jq  -f $jqFile $recFile >> $recordingLinks
-    done;
+#    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
 
-    msg "Fetching recordings..."
-
-    for rec in $tmp/*.recordings.json;
-    do
-	msg "Working on $rec and buiding $justLinks"
-	jq -r -f $thisDir/get.course.recordings.jq $rec >> $justLinks
-	jq -r -f $thisDir/get.course.participants.jq $rec >> $tmp/participant.meetings.list
-	#
-    done
-    #    exit
-    for file in $tmp/*recordings.json; do
-	msg "Getting stuff from this file $file"
-    thisLink=$(jq -r -f $thisDir/make.course.links.jq $file)
-    theseTimes=$(jq -r -f $thisDir/get.course.times.jq $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-
-    echo "$thisLink $theseTimes" >> $justLinks
-    done
-    # $1 is the unix timesamp in $justLinks
-    cp -v $HTMLFile .
 }
 getParticipants()
 {
@@ -276,13 +263,11 @@ getParticipants()
 	 --header 'Authorization: Bearer '$thisAuth \
 	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$partMtg.participants.json
     done < $gThisList
-}
-mungParticipants()
-{
+
     echo "User,Device,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > $tmp/participants.csv
     for part in $tmp/*participants.json;
     do
-	jq -r '. | select(.code == null) | .participants[] | [.user_name, .device, .location,.network_type, .microphone, .speaker, .camera, .version,.ip_address] | @csv ' $part >> $tmp/participants.csv
+	jq -r -f $thisDir/get.participant.detail.jq $part >> $tmp/participants.csv
     done
     msg "Partiticapnts\' file is $tmp/partcipants.csv"
     ssconvert $tmp/participants.csv participants.xlsx
@@ -290,28 +275,27 @@ mungParticipants()
     
 }
 
-while getopts ":r:t:nhv" opt; do
+while getopts ":r:t:nShv" opt; do
     case ${opt} in
 	r )
 	    ### -r Get recordings for Meeting type, see below
 	    getAll=true
 	    getRecordings=true
-	    subCmd=$OPTARG
-	    meetingType=Recordings
+	    rptType=$OPTARG
 	    cmd=Recording
 #	    echo "Got \$thisMeetingType $thisMeetingType"
-	    case "$subCmd" in
+	    case "$rptType" in
 		[Cc]ourse*)
 		    ###        Courses
-		    thisType="Courses"
+		    mtgName="Courses"
 		;;
 		[Cc]ommittee*)
 		    ###        Committees
-		    thisType="Committee Meeting"
+		    mtgName="Committee Meeting"
 		    ;;
 		[Ee]vent*)
 		    ###        Events
-		    thisType="Events"
+		    mtgName="Events"
 		    ;;
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
@@ -319,7 +303,11 @@ while getopts ":r:t:nhv" opt; do
 		    ;;
 	    esac
 
-	;;
+	    ;;
+	S ) # capital S
+	    ### Simplified output to allow us to use the data in a spreadsheet.
+	    simple=true
+	    ;;
 	t )
 	    ### -t Zoom meeting type
 	    thisCmd=$OPTARG
@@ -328,23 +316,23 @@ while getopts ":r:t:nhv" opt; do
 	    case "$thisCmd" in
 		[Cc]ourse*)
 		    ###        Courses
-		    thisType="Course"
+		    mtgName="Course"
 		    cmd="Course"
 		;;
 		[Cc]ommittee*)
 		    ###        Committees
-		    thisType="Committee Meeting"
+		    mtgName="Committee Meeting"
 		    cmd=Committee
 		    ;;
 		[Ee]vent*)
 		    ###        Events
-		    thisType="Events"
+		    mtgName="Events"
 		    cmd=Event
 		    getAll=true
 		    ;;
 		[Cc]lub*)
 		    ###        Clubs
-		    thisType="Club Meeting"
+		    mtgName="Club Meeting"
 		    cmd=Club
 		    ;;
 		* )
@@ -371,8 +359,12 @@ while getopts ":r:t:nhv" opt; do
 	    ;;
     esac
 done
-#msg "Will do \$cmd $cmd for \$thisType $thisType"
+msg "Will do \$cmd $cmd for \$mtgName $mtgName"
 init "$cmd"
-setup "$cmd" "$thisType"
-echo "Got $cmd here"
-do$cmd  $cmd  "$thisType"
+setup "$cmd" "$mtgName"
+echo "Repor type is $rptType"
+
+do$cmd  $cmd  "$mtgName"
+end_time="$(date -u +%s)"
+elapsed="$(($end_time-$start_time))"
+msg "Elapsed time: $elapsed seconds"
