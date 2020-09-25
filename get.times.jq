@@ -1,0 +1,1 @@
+. | if .occurrences == null  then .start_time else .occurrences[].start_time end
