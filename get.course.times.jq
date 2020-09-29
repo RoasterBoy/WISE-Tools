@@ -1,0 +1,1 @@
+select(.total_records > 0) | .occurrences[].start_time
