@@ -1,1 +1,1 @@
-select(.id != null) | [.topic, .join_url, (.agenda | sub( "\n"; "<br/>")) , .settings.global_dial_in_numbers[1].number,(.id | tostring) ,.password, "Alternate hosts: " + (.settings.alternative_hosts  | gsub(";";"<br/>"))] | @tsv
+select(.id != null) | [.topic, .join_url, (.agenda | sub( "\n"; "<br/>")) , .settings.global_dial_in_numbers[].number,(.id | tostring) ,.password, "Alternate hosts: " + (.settings.alternative_hosts  | gsub(";";"<br/>"))] | @tsv

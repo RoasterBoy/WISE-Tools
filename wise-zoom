@@ -20,14 +20,14 @@ msg()
 setup()
 {
     rptType=$1
-    thisSub=$2
+    rptName=$2
     thisDir=$(cd `dirname $0` && pwd)
     thisAuth=$(python $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>$justLinks
     sortedLinks=$tmp/sorted.links.tsv
-    msg "Doing setup for \$rptType $rptType and \$thisSub $thisSub"
+    msg "Doing setup for \$rptType $rptType and \$rptName $rptName"
     case "$rptType" in
 	[Cc]ourse*)
 	    title="Zoom Links for Courses"
@@ -42,7 +42,7 @@ setup()
 	    title="Zoom Links for Events"
 	    ;;
 	[Rr]ecording*)
-	    title="Recordings for $thisSub"
+	    title="Recordings for $rptName"
 	    ;;
 	*)
 	    title=$rptType
@@ -98,8 +98,7 @@ getMeetings()
 }
 meetingBasics()
 {
-    tmpType=$1
-    msg "Working on $mtgType right now"
+    msg "Working on $rptName right now"
     msg "Initializing $tmpType.list"
     tmpTypeList=$tmp/$tmpType.list
     :> $tmpTypeList
@@ -120,8 +119,8 @@ meetingBasics()
 #		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' \
 		 -o $tmp/$thisMtg.details.json 
 	fi
-	gotItem=$(jq --arg TYPE "$tmpType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisMtg.details.json)
-	gotTopic=$(jq --arg TYPE "$tmpType" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisMtg.details.json)
+	gotItem=$(jq --arg TYPE "$rptName" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisMtg.details.json)
+	gotTopic=$(jq --arg TYPE "$rptName" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisMtg.details.json)
 	if [[ $gotItem = "" ]] ; then
 	    # msg "No $tmpType found"
 	    # Get rid of this file
@@ -189,7 +188,7 @@ doClub()
 }
 doCommittee()
 {
-    meetingBasics "Committee Meeting"
+    meetingBasics # uses $rptType $rptName
     
     for file in $tmp/*.details.json;
     do
@@ -197,7 +196,7 @@ doCommittee()
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
 	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> $justLlinks
+	echo "$thisLink $theseTimes" >> $justLinks
     done
     sort --version-sort $justLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
@@ -244,13 +243,13 @@ doRecording()
     jq -s '.' $tmp/*recordings.json > $tmp/big.json
     echo "We have this \$gThisList $gThisList"
     while IFS='' read -r thisItem; do
-	jq -r --arg ID $thisItem -f get.recording.links.jq $tmp/big.json >> $recordingLinks
+	jq -r --arg ID $thisItem -f $thisDir/get.recording.links.jq $tmp/big.json >> $recordingLinks
     done < $gThisList
     sort -r $recordingLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
     msg "Output file is $HTMLFile"
 
-#    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
+    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
 
 }
 getParticipants()
@@ -288,14 +287,17 @@ while getopts ":r:t:nShv" opt; do
 		[Cc]ourse*)
 		    ###        Courses
 		    mtgName="Courses"
+		    rptType="Courses"
 		;;
 		[Cc]ommittee*)
 		    ###        Committees
 		    mtgName="Committee Meeting"
+		    rptType="Committee"
 		    ;;
 		[Ee]vent*)
 		    ###        Events
 		    mtgName="Events"
+		    rptType="Events"
 		    ;;
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
@@ -362,7 +364,7 @@ done
 msg "Will do \$cmd $cmd for \$mtgName $mtgName"
 init "$cmd"
 setup "$cmd" "$mtgName"
-echo "Repor type is $rptType"
+echo "Report type is $rptType"
 
 do$cmd  $cmd  "$mtgName"
 end_time="$(date -u +%s)"
