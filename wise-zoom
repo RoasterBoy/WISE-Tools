@@ -20,40 +20,18 @@ msg()
 setup()
 {
     rptType=$1
-    rptName=$2
     thisDir=$(cd `dirname $0` && pwd)
     thisAuth=$(python $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>$justLinks
     sortedLinks=$tmp/sorted.links.tsv
-    msg "Doing setup for \$rptType $rptType and \$rptName $rptName"
-    case "$rptType" in
-	[Cc]ourse*)
-	    title="Zoom Links for Courses"
-	    ;;
-	[Cc]lub*)
-	    title="Zoom Links for Club Meetings"
-	    ;;
-	[Cc]ommittee*)
-	    title="Zoom Links for Committee Meetings"
-	    ;;
-	[Ee]vent*)
-	    title="Zoom Links for Events"
-	    ;;
-	[Rr]ecording*)
-	    title="Recordings for $rptName"
-	    ;;
-	*)
-	    title=$rptType
-	    ;;
-    esac
-    msg "\$title is $title"
-    HTMLFile=$tmp/$rptType.links.html
+    msg "Doing setup for \$rptType $rptType "
+    HTMLFile=$tmp/$rptType.html
     msg "Initializing $HTMLFile"
     :>$HTMLFile
     if [[ $simple = "false" ]]; then
-	echo "<h2>$title</h2>" > $HTMLFile
+	echo "<h2>$rptTitle</h2>" > $HTMLFile
     thisDate=$(date)
     echo "<p>Updated: $thisDate" >> $HTMLFile
     fi
@@ -90,53 +68,44 @@ getMeetings()
 
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/users/'$thisHost'/meetings?page_size=300&type='$retrieveType \
-		 --header 'Authorization: Bearer '$thisAuth\
-		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisHost.info.json 
+		 --header 'Authorization: Bearer '$thisAuth -o $tmp/$thisHost.info.json 
 	done < $hostList
     jq --slurp ' .[] | .meetings[].id' $tmp/*info.json  > $tmp/all.meetings.list
     cat $tmp/all.meetings.list  | sort --unique > $tmp/meetings.list
 }
 meetingBasics()
 {
-    msg "Working on $rptName right now"
-    msg "Initializing $tmpType.list"
-    tmpTypeList=$tmp/$tmpType.list
-    :> $tmpTypeList
+    msg "Working on $trackingField right now"
+    msg "Initializing $cmd.list"
+    rptTypeList=$tmp/$cmd.list
+    :> $rptTypeList
     getMeetings
-    if [[ ${tmpType: -1} = "s" ]]; then
-	tmpType=${tmpType%?}
-    fi
-
     while IFS='' read -r thisMtg ; do
 	if [[ "$init" = false ]] ; then
-	    msg "Skipping update of $tmpType details"
+	    msg "Skipping update of $rptType details"
 	else
-	    # Do we need '?occurrence_id=%3Cstring%3E' in url?
-	    # Do we need cookie?
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/meetings/'$thisMtg \
 		 --header 'Authorization: Bearer '$thisAuth\
-#		 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' \
 		 -o $tmp/$thisMtg.details.json 
 	fi
-	gotItem=$(jq --arg TYPE "$rptName" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .id' $tmp/$thisMtg.details.json)
-	gotTopic=$(jq --arg TYPE "$rptName" '. | select( (.tracking_fields) != null) | select(.tracking_fields[].value == $TYPE) | .topic'  $tmp/$thisMtg.details.json)
+	gotItem=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.type.jq $tmp/$thisMtg.details.json)
+	gotTopic=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.type.jq  $tmp/$thisMtg.details.json)
 	if [[ $gotItem = "" ]] ; then
-	    # msg "No $tmpType found"
+	    # msg "No $rptType found"
 	    # Get rid of this file
 	     mv $tmp/$thisMtg.details.json $tmp/$thisMtg.details.json-null
 	    #rm $tmp/$thisMtg.details.json
 	else
 	    msg "Got $gotTopic"
-	    echo $gotItem >> $tmpTypeList 
+	    echo $gotItem >> $rptTypeList 
 	fi
 	
     done < $tmp/meetings.list
-
-    gThisList=$tmpTypeList # return name of the meeting type list
+    gThisList=$rptTypeList # return name of the meeting type list
 }
 
-doCourse()
+doCourses()
 {
     properName=$1
     meetingBasics Course
@@ -168,7 +137,7 @@ doCourse()
 	msg "Output file is $HTMLFile"
     fi
 }
-doClub()
+doCluba()
 {
     properName=$1
     msg "Geting recordings for $properName"
@@ -186,7 +155,7 @@ doClub()
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
-doCommittee()
+doCommitteea()
 {
     meetingBasics # uses $rptType $rptName
     
@@ -202,7 +171,7 @@ doCommittee()
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
-doEvent()
+doEvents()
 {
     properName=$1
     msg "Geting recordings for $properName"
@@ -222,20 +191,21 @@ doEvent()
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
-doRecording()
+doRecordings()
 {
-    rptType=$2
-    msg "Geting recordings for $rptType"
+    msg "Geting recordings for $trackingField"
     hostList=$(get.zoom.hosts.sh)
     # Get all events of $rptType
-    meetingBasics $rptType # returns $gThisList    # get IDs of these events
+    meetingBasics # returns $gThisList    # get IDs of these events
+    if [[ $gThisList = "" ]]; then
+	echo "Missing global list $gThisList"
+	exit
+    fi
     ### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
     while IFS='' read -r thisHost; do
 	curl -s --request GET \
 	     'https://api.zoom.us/v2/users/'$thisHost'/recordings?page_size=300&from=2020-09-10' \
-	     --header 'Authorization: Bearer '$thisAuth \
-	     --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$thisHost.recordings.json
-	
+	     --header 'Authorization: Bearer '$thisAuth -o $tmp/$thisHost.recordings.json
     done < $hostList
     recordingLinks=$tmp/recording.links.tsv
     msg "Initializing $recordingLinks"
@@ -248,15 +218,16 @@ doRecording()
     sort -r $recordingLinks > $sortedLinks
     gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
     msg "Output file is $HTMLFile"
-
-    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
+    echo $gThisList
+    exit
+#    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
 
 }
 getParticipants()
 {
     while IFS='' read -r partMtg ; do 
     msg "Also getting participant detail for this meeting: $partMtg"
-    # https://marketplace.zoom.us/docs/api-reference/zoom-api/dashboards/dashboardmeetingparticipants
+
     curl -s --location --request GET \
 	 'https://api.zoom.us/v2/metrics/meetings/'$partMtg'/participants?type=past' \
 	 --header 'Authorization: Bearer '$thisAuth \
@@ -269,38 +240,32 @@ getParticipants()
 	jq -r -f $thisDir/get.participant.detail.jq $part >> $tmp/participants.csv
     done
     msg "Partiticapnts\' file is $tmp/partcipants.csv"
-    ssconvert $tmp/participants.csv participants.xlsx
-
-    
+    ssconvert $tmp/participants.csv participants.xlsx    
 }
 
 while getopts ":r:t:nShv" opt; do
     case ${opt} in
 	r )
-	    ### -r Get recordings for Meeting type, see below
 	    getAll=true
 	    getRecordings=true
-	    rptType=$OPTARG
-	    cmd=Recording
-#	    echo "Got \$thisMeetingType $thisMeetingType"
-	    case "$rptType" in
+	    tmpType=$OPTARG
+	    rptType=Recording
+	    case "$tmpType" in
+		### -r Zoom recording type
 		[Cc]ourse*)
 		    ###        Courses
-		    mtgName="Courses"
-		    rptType="Courses"
+		    trackingField="Course"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
 		;;
-		[Cc]ommittee*)
-		    ###        Committees
-		    mtgName="Committee Meeting"
-		    rptType="Committee"
-		    ;;
 		[Ee]vent*)
 		    ###        Events
-		    mtgName="Events"
-		    rptType="Events"
+		    trackingField="Event"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
 		    ;;
 		* )
-		    echo "%% Invalid meeting type : $OPTARG"
+		    echo "%% Invalid tracking field : $OPTARG"
 		    help
 		    ;;
 	    esac
@@ -312,30 +277,33 @@ while getopts ":r:t:nShv" opt; do
 	    ;;
 	t )
 	    ### -t Zoom meeting type
-	    thisCmd=$OPTARG
+	    tmpType=$OPTARG
 	    # matching upper or lower, singular or plural
-#	    echo "Got type"
-	    case "$thisCmd" in
+	    msg "Got type $tmpType"
+	    case "$tmpType" in
 		[Cc]ourse*)
 		    ###        Courses
-		    mtgName="Course"
-		    cmd="Course"
+		    trackingField="Course"
+		    rptTitle="Zoom Links for Courses"
+		    cmd=Courses
 		;;
 		[Cc]ommittee*)
 		    ###        Committees
-		    mtgName="Committee Meeting"
-		    cmd=Committee
+		    trackingField="Committee Meeting"
+		    rptTitle="Zoom Links for Committee Meetings"
+		    cmd=Committees
 		    ;;
 		[Ee]vent*)
 		    ###        Events
-		    mtgName="Events"
-		    cmd=Event
-		    getAll=true
+		    trackingField="Event"
+		    rptTitle="Zoom Links for Events"
+		    cmd=Events
 		    ;;
 		[Cc]lub*)
 		    ###        Clubs
-		    mtgName="Club Meeting"
-		    cmd=Club
+		    trackingField="Club Meeting"
+		    rptTitle="Zoom Links for Clubs and Groups"
+		    cmd=Clubs
 		    ;;
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
@@ -361,12 +329,10 @@ while getopts ":r:t:nShv" opt; do
 	    ;;
     esac
 done
-msg "Will do \$cmd $cmd for \$mtgName $mtgName"
-init "$cmd"
+msg "Will do \$rptType $rptType for \$trackingField $trackingField"
+init "$cms"
 setup "$cmd" "$mtgName"
-echo "Report type is $rptType"
-
-do$cmd  $cmd  "$mtgName"
+do$cmd  $mtgName  "$mtgName"
 end_time="$(date -u +%s)"
 elapsed="$(($end_time-$start_time))"
 msg "Elapsed time: $elapsed seconds"
