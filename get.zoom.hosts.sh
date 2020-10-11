@@ -12,6 +12,7 @@ help()
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
 }
+thisAuth=$(python $tools/get.auth.py)
 msg()
 {
     if [  "$verbose" = true ];
@@ -24,13 +25,12 @@ msg()
 setup()
 {
     tmp=~/tmp/zoom
-    mkdir -p $tmp
     thisList=$tmp/hosts.list
     thisJSON=$tmp/hosts.json
     msg "Host list is $thisList"
     msg "JSON file is $thisJSON"
 }
-thisAuth=$(python3 $tools/get.auth.py)
+thisAuth=$(python $tools/get.auth.py)
 getHosts()
 {
     #    | jq -r '.users[].email' > this.list.txt

@@ -21,7 +21,7 @@ setup()
 {
     rptType=$1
     thisDir=$(cd `dirname $0` && pwd)
-    thisAuth=$(python $thisDir/get.auth.py)
+    thisAuth=$(python3 $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>$justLinks
@@ -90,7 +90,7 @@ meetingBasics()
 		 -o $tmp/$thisMtg.details.json 
 	fi
 	gotItem=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.type.jq $tmp/$thisMtg.details.json)
-	gotTopic=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.type.jq  $tmp/$thisMtg.details.json)
+	gotTopic=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.topic.jq  $tmp/$thisMtg.details.json)
 	if [[ $gotItem = "" ]] ; then
 	    # msg "No $rptType found"
 	    # Get rid of this file
