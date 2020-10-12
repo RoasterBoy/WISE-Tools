@@ -21,7 +21,7 @@ setup()
 {
     rptType=$1
     thisDir=$(cd `dirname $0` && pwd)
-    thisAuth=$(python3 $thisDir/get.auth.py)
+    thisAuth=$(python $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>$justLinks
@@ -50,6 +50,19 @@ init()
     touch $tmp/tmp.tmp
     rm -r $tmp/*
 }
+getHosts()
+{
+    hostList=$tmp/hosts.list
+    hostJSON=$tmp/hosts.json
+    msg "Host list is $hostList"
+    msg "JSON file is $hostJSON fer sure"
+    curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
+	 --header 'Authorization: Bearer '$thisAuth \
+	 --header 'Cookie: _zm_lang=en-US; cred=E847D55F4DDCDBC0D8EE197899BCB2C9' -o $hostJSON
+    # We might skip $hostJSON when we're confident
+    jq -r '.users[] | select(.type == 2)  | .id' $hostJSON > $hostList
+    msg "At end of getHosts"
+}
 getMeetings()
 {
     if [[ "$init" = false ]] ; then
@@ -62,7 +75,7 @@ getMeetings()
 	retrieveType="upcoming"	
     fi
 	msg "Getting all meetings that are $retrieveType"
-	hostList=$(get.zoom.hosts.sh)
+	getHosts # returns $hostList
 	while IFS='' read -r thisHost ; do
 	    msg "Working on meetings for $thisHost"
 
@@ -183,18 +196,19 @@ doEvents()
 	thisTopic=$(jq '.topic' $file)
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
-#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	theseTimes=$(jq -r '.start_time ' $file )
-	echo "$thisLink $theseTimes" >> $justLinks
+	#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	theseTimes=$(jq -r '.start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "%s" TIME)
+#	theseTimes=$(jq -r '(.start_time) ' $file )
+	echo "$theseTimes	$thisLink" >> $justLinks
     done
-    sort --version-sort just.links.tsv > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
+    sort $justLinks > $sortedLinks
+    gawk -F '\t' -f $thisDir/zoom.events.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
 doRecordings()
 {
     msg "Geting recordings for $trackingField"
-    hostList=$(get.zoom.hosts.sh)
+    getHosts
     # Get all events of $rptType
     meetingBasics # returns $gThisList    # get IDs of these events
     if [[ $gThisList = "" ]]; then
