@@ -150,7 +150,7 @@ doCourses()
 	msg "Output file is $HTMLFile"
     fi
 }
-doCluba()
+doClubs()
 {
     properName=$1
     msg "Geting recordings for $properName"
@@ -168,9 +168,9 @@ doCluba()
     gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
-doCommitteea()
+doCommittees()
 {
-    meetingBasics # uses $rptType $rptName
+    meetingBasics Committee # uses $rptType $rptName
     
     for file in $tmp/*.details.json;
     do
@@ -346,6 +346,10 @@ done
 msg "Will do \$rptType $rptType for \$trackingField $trackingField"
 init "$cms"
 setup "$cmd" "$mtgName"
+if [[ -z $cmd ]]; then
+    echo "%% *Error* - Missing meeting type or recording"
+    help
+fi
 do$cmd  $mtgName  "$mtgName"
 end_time="$(date -u +%s)"
 elapsed="$(($end_time-$start_time))"
