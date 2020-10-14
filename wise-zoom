@@ -5,7 +5,8 @@ start_time="$(date -u +%s)"
 simple=false
 help()
 {
-    thisScript=$(which "$0")
+    #    thisScript=$(which "$0")
+        thisScript=$("$0" -v)
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
 }
@@ -13,27 +14,28 @@ msg()
 {
     if [  "$verbose" = true ];
     then
-	msgString=$@
+	#	msgString=$@
+	msgString=$*
 	echo "%% $msgString"
     fi
 }
 setup()
 {
     rptType=$1
-    thisDir=$(cd `dirname $0` && pwd)
-    thisAuth=$(python $thisDir/get.auth.py)
+    thisDir=$(cd "$(dirname "$0")" && pwd)
+    thisAuth=$(python "$thisDir"/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
-    :>$justLinks
+    :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
     HTMLFile=$tmp/$rptType.html
     msg "Initializing $HTMLFile"
-    :>$HTMLFile
+    :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
-	echo "<h2>$rptTitle</h2>" > $HTMLFile
+	echo "<h2>$rptTitle</h2>" > "$HTMLFile"
     thisDate=$(date)
-    echo "<p>Updated: $thisDate" >> $HTMLFile
+    echo "<p>Updated: $thisDate" >> "$HTMLFile"
     fi
 }
 init()
@@ -46,9 +48,10 @@ init()
     fi
     msg "Doing initialization"
 #    return
-    mkdir -p $tmp
-    touch $tmp/tmp.tmp
-    rm -r $tmp/*
+    mkdir -p "$tmp"
+    touch "$tmp"/tmp.tmp
+    rm -r "${tmp:?}"/*
+    
 }
 getHosts()
 {
@@ -57,7 +60,7 @@ getHosts()
     msg "Host list is $hostList"
     msg "JSON file is $hostJSON fer sure"
     curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
-	 --header 'Authorization: Bearer '$thisAuth \
+	 --header 'Authorization: Bearer '"$thisAuth" \
 	 --header 'Cookie: _zm_lang=en-US; cred=E847D55F4DDCDBC0D8EE197899BCB2C9' -o $hostJSON
     # We might skip $hostJSON when we're confident
     jq -r '.users[] | select(.type == 2)  | .id' $hostJSON > $hostList
@@ -80,41 +83,41 @@ getMeetings()
 	    msg "Working on meetings for $thisHost"
 
 	    curl -s --location --request GET \
-		 'https://api.zoom.us/v2/users/'$thisHost'/meetings?page_size=300&type='$retrieveType \
-		 --header 'Authorization: Bearer '$thisAuth -o $tmp/$thisHost.info.json 
+		 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
+		 --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
 	done < $hostList
-    jq --slurp ' .[] | .meetings[].id' $tmp/*info.json  > $tmp/all.meetings.list
-    cat $tmp/all.meetings.list  | sort --unique > $tmp/meetings.list
+    jq --slurp ' .[] | .meetings[].id' "$tmp"/*info.json  > "$tmp"/all.meetings.list
+    sort --unique > "$tmp"/meetings.list < "$tmp"/all.meetings.list
 }
 meetingBasics()
 {
     msg "Working on $trackingField right now"
     msg "Initializing $cmd.list"
     rptTypeList=$tmp/$cmd.list
-    :> $rptTypeList
+    :>"$rptTypeList"
     getMeetings
     while IFS='' read -r thisMtg ; do
 	if [[ "$init" = false ]] ; then
 	    msg "Skipping update of $rptType details"
 	else
 	    curl -s --location --request GET \
-		 'https://api.zoom.us/v2/meetings/'$thisMtg \
-		 --header 'Authorization: Bearer '$thisAuth\
-		 -o $tmp/$thisMtg.details.json 
+		 'https://api.zoom.us/v2/meetings/'"$thisMtg" \
+		 --header 'Authorization: Bearer '"$thisAuth"\
+		 -o "$tmp"/"$thisMtg".details.json 
 	fi
-	gotItem=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.type.jq $tmp/$thisMtg.details.json)
-	gotTopic=$(jq --arg TYPE "$trackingField" -f $thisDir/get.zoom.topic.jq  $tmp/$thisMtg.details.json)
+	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
+	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotItem = "" ]] ; then
 	    # msg "No $rptType found"
 	    # Get rid of this file
-	     mv $tmp/$thisMtg.details.json $tmp/$thisMtg.details.json-null
-	    #rm $tmp/$thisMtg.details.json
+	     mv "$tmp"/"$thisMtg".details.json "$tmp"/"$thisMtg".details.json-null
+	    #rm "$tmp"/$thisMtg.details.json
 	else
 	    msg "Got $gotTopic"
-	    echo $gotItem >> $rptTypeList 
+	    echo "$gotItem" >> "$rptTypeList" 
 	fi
 	
-    done < $tmp/meetings.list
+    done < "$tmp"/meetings.list
     gThisList=$rptTypeList # return name of the meeting type list
 }
 
@@ -124,29 +127,29 @@ doCourses()
     meetingBasics Course
     #
 
-    for file in $tmp/*.details.json;
+    for file in "$tmp"/*.details.json;
     do
-	thisTopic=$(jq '.topic' $file)
+	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	if [[ $simple = "true" ]]; then
-	    jqFile=$thisDir/make.simple.course.links.jq
-	    theseTime=""
+	    jqFile="$thisDir"/make.simple.course.links.jq
+	    theseTimes=""
 	else
-	    jqFile=$thisDir/make.course.links.jq
-	    theseTimes=$(jq -r '.occurrences[].start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	    jqFile="$thisDir"/make.course.links.jq
+	    theseTimes=$(jq -r '.occurrences[].start_time' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
-	thisLink=$(jq -r -f $jqFile $file)
-	echo "$thisLink	$theseTimes" >> $justLinks
+	thisLink=$(jq -r -f "$jqFile" "$file")
+	echo "$thisLink	$theseTimes" >> "$justLinks"
     done
     msg "Initializing $sortedLinks"
-    :>$sortedLinks
+    :>"$sortedLinks"
     if [[ $simple = "true" ]]; then
-	printf "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > $sortedLinks
-	sort --version-sort $justLinks >> $sortedLinks
+	printf "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
+	sort --version-sort "$justLinks" >> "$sortedLinks"
 	msg "Sorted links are in $sortedLinks"
     else
-	sort --version-sort $justLinks >> $sortedLinks
-	gawk -F '\t' -f $thisDir/zoom.courses.awk $sortedLinks >> $HTMLFile
+	sort --version-sort "$justLinks" >> "$sortedLinks"
+	gawk -F '\t' -f "$thisDir"/zoom.courses.awk "$sortedLinks" >> "$HTMLFile"
 	msg "Output file is $HTMLFile"
     fi
 }
@@ -156,32 +159,32 @@ doClubs()
     msg "Geting recordings for $properName"
     meetingBasics Club
 
-    for file in $tmp/*.details.json;
+    for file in "$tmp"/*.details.json;
     do
-	thisTopic=$(jq '.topic' $file)
+	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
-	theseTimes=$(jq -r -f $thisDir/get.times.jq $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> $justLinks
+	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink $theseTimes" >> "$justLinks"
     done
-    sort --version-sort $justLinks > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
+    sort --version-sort "$justLinks" > "$sortedLinks"
+    gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
     msg "HTML Link file is $HTMLFile"
 }
 doCommittees()
 {
     meetingBasics Committee # uses $rptType $rptName
     
-    for file in $tmp/*.details.json;
+    for file in "$tmp"/*.details.json;
     do
-	thisTopic=$(jq '.topic' $file)
+	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
-	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> $justLinks
+	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink $theseTimes" >> "$justLinks"
     done
-    sort --version-sort $justLinks > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.clubs.awk $sortedLinks >> $HTMLFile
+    sort --version-sort "$justLinks" > "$sortedLinks"
+    gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
     msg "HTML Link file is $HTMLFile"
 }
 doEvents()
@@ -191,18 +194,18 @@ doEvents()
    
     meetingBasics Event
     
-    for file in $tmp/*.details.json;
+    for file in "$tmp"/*.details.json;
     do
-	thisTopic=$(jq '.topic' $file)
+	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f $thisDir/make.zoom.links.jq $file)
-	#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	theseTimes=$(jq -r '.start_time' $file | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "%s" TIME)
-#	theseTimes=$(jq -r '(.start_time) ' $file )
-	echo "$theseTimes	$thisLink" >> $justLinks
+	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	theseTimes=$(jq -r '.start_time' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "%s" TIME)
+#	theseTimes=$(jq -r '(.start_time) ' "$file" )
+	echo "$theseTimes	$thisLink" >> "$justLinks"
     done
-    sort $justLinks > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.events.awk $sortedLinks >> $HTMLFile
+    sort "$justLinks" > "$sortedLinks"
+    gawk -F '\t' -f "$thisDir"/zoom.events.awk "$sortedLinks" >> "$HTMLFile"
     msg "HTML Link file is $HTMLFile"
 }
 doRecordings()
@@ -210,29 +213,29 @@ doRecordings()
     msg "Geting recordings for $trackingField"
     getHosts
     # Get all events of $rptType
-    meetingBasics # returns $gThisList    # get IDs of these events
-    if [[ $gThisList = "" ]]; then
+    meetingBasics # returns "$gThisList"    # get IDs of these events
+    if [[ "$gThisList" = "" ]]; then
 	echo "Missing global list $gThisList"
 	exit
     fi
     ### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
     while IFS='' read -r thisHost; do
 	curl -s --request GET \
-	     'https://api.zoom.us/v2/users/'$thisHost'/recordings?page_size=300&from=2020-09-10' \
-	     --header 'Authorization: Bearer '$thisAuth -o $tmp/$thisHost.recordings.json
-    done < $hostList
+	     'https://api.zoom.us/v2/users/'"$thisHost"'/recordings?page_size=300&from=2020-09-10' \
+	     --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".recordings.json
+    done < "$hostList"
     recordingLinks=$tmp/recording.links.tsv
     msg "Initializing $recordingLinks"
     :>$recordingLinks
-    jq -s '.' $tmp/*recordings.json > $tmp/big.json
-    echo "We have this \$gThisList $gThisList"
+    jq -s '.' "$tmp"/*recordings.json > "$tmp"/big.json
+    echo "We have this \"$gThisList" "$gThisList"
     while IFS='' read -r thisItem; do
-	jq -r --arg ID $thisItem -f $thisDir/get.recording.links.jq $tmp/big.json >> $recordingLinks
-    done < $gThisList
-    sort -r $recordingLinks > $sortedLinks
-    gawk -F '\t' -f $thisDir/zoom.recordings.awk $sortedLinks >> $HTMLFile
+	jq -r --arg ID "$thisItem" -f "$thisDir"/get.recording.links.jq "$tmp"/big.json >> "$recordingLinks"
+    done < "$gThisList"
+    sort -r "$recordingLinks" > "$sortedLinks"
+    gawk -F '\t' -f "$thisDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
-    echo $gThisList
+    echo "$gThisList"
     exit
 #    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
 
@@ -243,25 +246,24 @@ getParticipants()
     msg "Also getting participant detail for this meeting: $partMtg"
 
     curl -s --location --request GET \
-	 'https://api.zoom.us/v2/metrics/meetings/'$partMtg'/participants?type=past' \
-	 --header 'Authorization: Bearer '$thisAuth \
-	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o $tmp/$partMtg.participants.json
-    done < $gThisList
+	 'https://api.zoom.us/v2/metrics/meetings/'"$partMtg"'/participants?type=past' \
+	 --header 'Authorization: Bearer '"$thisAuth" \
+	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o "$tmp"/"$partMtg".participants.json
+    done < "$gThisList"
 
-    echo "User,Device,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > $tmp/participants.csv
-    for part in $tmp/*participants.json;
+    echo "User,Device,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/participants.csv
+    for part in "$tmp"/*participants.json;
     do
-	jq -r -f $thisDir/get.participant.detail.jq $part >> $tmp/participants.csv
+	jq -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/participants.csv
     done
     msg "Partiticapnts\' file is $tmp/partcipants.csv"
-    ssconvert $tmp/participants.csv participants.xlsx    
+    ssconvert "$tmp"/participants.csv participants.xlsx    
 }
 
 while getopts ":r:t:nShv" opt; do
     case ${opt} in
 	r )
 	    getAll=true
-	    getRecordings=true
 	    tmpType=$OPTARG
 	    rptType=Recording
 	    case "$tmpType" in
@@ -344,13 +346,13 @@ while getopts ":r:t:nShv" opt; do
     esac
 done
 msg "Will do \$rptType $rptType for \$trackingField $trackingField"
-init "$cms"
-setup "$cmd" "$mtgName"
+init "$cmd"
+setup "$cmd"
 if [[ -z $cmd ]]; then
     echo "%% *Error* - Missing meeting type or recording"
     help
 fi
-do$cmd  $mtgName  "$mtgName"
-end_time="$(date -u +%s)"
-elapsed="$(($end_time-$start_time))"
+do$cmd 
+end_time=$(date -u +%s)
+elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"
