@@ -57,8 +57,8 @@ getHosts()
 {
     hostList=$tmp/hosts.list
     hostJSON=$tmp/hosts.json
-    msg "Host list is $hostList"
-    msg "JSON file is $hostJSON fer sure"
+    # msg "Host list is $hostList"
+    # msg "JSON file is $hostJSON"
     curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
 	 --header 'Authorization: Bearer '"$thisAuth" \
 	 --header 'Cookie: _zm_lang=en-US; cred=E847D55F4DDCDBC0D8EE197899BCB2C9' -o $hostJSON
@@ -110,8 +110,8 @@ meetingBasics()
 	if [[ $gotItem = "" ]] ; then
 	    # msg "No $rptType found"
 	    # Get rid of this file
-	     mv "$tmp"/"$thisMtg".details.json "$tmp"/"$thisMtg".details.json-null
-	    #rm "$tmp"/$thisMtg.details.json
+#	     mv "$tmp"/"$thisMtg".details.json "$tmp"/"$thisMtg".details.json-null
+	    rm "$tmp"/"$thisMtg".details.json
 	else
 	    msg "Got $gotTopic"
 	    echo "$gotItem" >> "$rptTypeList" 
@@ -228,16 +228,16 @@ doRecordings()
     msg "Initializing $recordingLinks"
     :>$recordingLinks
     jq -s '.' "$tmp"/*recordings.json > "$tmp"/big.json
-    echo "We have this \"$gThisList" "$gThisList"
+    echo "We have this gThisList: " "$gThisList"
     while IFS='' read -r thisItem; do
 	jq -r --arg ID "$thisItem" -f "$thisDir"/get.recording.links.jq "$tmp"/big.json >> "$recordingLinks"
     done < "$gThisList"
     sort -r "$recordingLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
-    echo "$gThisList"
-    exit
-#    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
+    #echo "$gThisList"
+#    exit
+    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
 
 }
 getParticipants()
@@ -256,14 +256,15 @@ getParticipants()
     do
 	jq -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/participants.csv
     done
-    msg "Partiticapnts\' file is $tmp/partcipants.csv"
-    ssconvert "$tmp"/participants.csv participants.xlsx    
+    msg "Participants' file is $tmp/partcipants.xlsx"
+    ssconvert "$tmp"/participants.csv "$tmp"/participants.xlsx    
 }
 
 while getopts ":r:t:nShv" opt; do
     case ${opt} in
 	r )
 	    getAll=true
+	    # This means that we'll also look at upcoming meetings, but won't find recordings.
 	    tmpType=$OPTARG
 	    rptType=Recording
 	    case "$tmpType" in
