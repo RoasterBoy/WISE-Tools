@@ -1,4 +1,4 @@
 jq
 datamash
-ssconvert # includes ssconvert
+gunmeric # includes ssconvert, used to convert csv to xlsx, needs X server to be installed
 csvkit # includes csvstat and csvcut
