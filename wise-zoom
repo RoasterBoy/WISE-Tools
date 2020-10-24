@@ -5,8 +5,7 @@ start_time="$(date -u +%s)"
 simple=false
 help()
 {
-    #    thisScript=$(which "$0")
-        thisScript=$("$0" -v)
+    thisScript=$(which "$0")
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
 }
@@ -22,8 +21,9 @@ msg()
 setup()
 {
     rptType=$1
-    thisDir=$(cd "$(dirname "$0")" && pwd)
-    thisAuth=$(python "$thisDir"/get.auth.py)
+#    thisDir=$(cd $(dirname $0) && pwd)
+    thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    thisAuth=$(python $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>"$justLinks"
@@ -187,6 +187,23 @@ doCommittees()
     gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
     msg "HTML Link file is $HTMLFile"
 }
+doSIG()
+{
+    meetingBasics Committee # uses $rptType $rptName
+
+    for file in "$tmp"/*.details.json;
+    do
+	thisTopic=$(jq '.topic' "$file")
+	msg "Deep Work on $thisTopic"
+	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	theseTimes=$(jq -r '.start_time ' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	echo "$thisLink $theseTimes" >> "$justLinks"
+    done
+    sort --version-sort "$justLinks" > "$sortedLinks"
+    gawk -F '\t' -f "$thisDir"/zoom.SIGs.awk "$sortedLinks" >> "$HTMLFile"
+    msg "HTML Link file is $HTMLFile"
+    
+}
 doEvents()
 {
     properName=$1
@@ -219,9 +236,10 @@ doRecordings()
 	exit
     fi
     ### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
+    since=$(date +%Y-%m-%d -d "30 days ago")
     while IFS='' read -r thisHost; do
 	curl -s --request GET \
-	     'https://api.zoom.us/v2/users/'"$thisHost"'/recordings?page_size=300&from=2020-09-10' \
+	     'https://api.zoom.us/v2/users/'"$thisHost"'/recordings?page_size=300&from='$since \
 	     --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".recordings.json
     done < "$hostList"
     recordingLinks=$tmp/recording.links.tsv
@@ -281,8 +299,14 @@ while getopts ":r:t:nShv" opt; do
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
 		    ;;
+		[Cc]ommittee*)
+		    ###        Events
+		    trackingField="Committee Meeting"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    ;;
 		* )
-		    echo "%% Invalid tracking field : $OPTARG"
+		    echo "%% Invalid tracking field for recordngs : $OPTARG"
 		    help
 		    ;;
 	    esac
@@ -321,6 +345,12 @@ while getopts ":r:t:nShv" opt; do
 		    trackingField="Club Meeting"
 		    rptTitle="Zoom Links for Clubs and Groups"
 		    cmd=Clubs
+		    ;;
+		SIG)
+		    ### SIG - Special Interest Group
+		    trackingField="SIG"
+		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
+		    cmd=SIG
 		    ;;
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
