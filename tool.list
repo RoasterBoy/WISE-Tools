@@ -1,3 +1,4 @@
 jq
 datamash
-ssconvert
+ssconvert # includes ssconvert
+csvkit # includes csvstat and csvcut
