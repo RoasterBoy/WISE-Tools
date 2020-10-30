@@ -3,6 +3,7 @@ BEGIN {}
     printf "<h2>%s</h2>\n", $1
     printf "<p><b>Zoom Link</b>: <a href='%s'>%s</a>", $2, $2
     print "<p><b>Meeting time(s)</b>"
+    if (length($8) == 0) print "Date not set"
     {for(i=8; i<=NF; i++) printf "<br>%s\n", $i}
     print "<hr/>"
     # Agenda
