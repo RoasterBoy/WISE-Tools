@@ -1,0 +1,1 @@
+.[] | .meetings[] | select(.id == ($ID | tonumber)) | [(.start_time|fromdate), .topic, (.recording_files[] | select(.file_type == "MP4") | .download_url)] | @tsv
