@@ -1,1 +1,1 @@
-. | if .occurrences == null  then .start_time else .occurrences[].start_time end
+if .occurrences == null  then  (.start_time | fromdate) else [(.occurrences[].start_time | fromdate) ] | @tsv end

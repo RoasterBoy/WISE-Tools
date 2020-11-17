@@ -2,17 +2,19 @@ BEGIN {}
 {
     printf "<h2>%s</h2>\n", $1
     printf "<p><b>Zoom Link</b>: <a href='%s'>%s</a>", $2, $2
-    print "<p><b>Meeting time(s)</b>"
-    if (length($8) == 0) print "Date not set"
-    {for(i=8; i<=NF; i++) printf "<br>%s\n", $i}
-    print "<hr/>"
+    printf "<br>%s", $3
+#    print "<p><b>Meeting time(s)</b>"
+#    printf "<br/>%s\n" , $7
+    print "<br/>"
     # Agenda
-    if (length($3) > 0) printf "<p>%s<p>", $3
     printf "Phone: %s", $4
     printf "<br>Meeting ID: %s", $5
     printf "<br>Password: %s", $6
-    printf "<br/>%s\n" , $7
-    
+    printf "<br/>%s\n", $7
+#    if (length($8) > 0) {
+	printf "<p><b>Meeting Times</b></p>\n"
+	for(i=8; i<=NF; i++) printf "%s<br/>\n", (strftime("%B %d, %Y %-I:%M %p", $i))
+ #   }
 }
 END{}
     
