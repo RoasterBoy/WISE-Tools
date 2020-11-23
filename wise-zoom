@@ -165,26 +165,25 @@ doClubs()
 	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	#	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
-    #| xargs -I {} date -d @{}  +"%B %d %Y %-I:%M %p")
 	echo "$thisLink	$theseTimes" >> "$justLinks"
     done
     sort --version-sort "$justLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
     msg "HTML Link file is $HTMLFile"
 }
-doCommittees()
+doMtg()
 {
-    meetingBasics Committee # uses $rptType $rptName
+
+    meetingBasics $thids # uses $rptType $rptName
     
     for file in "$tmp"/*.details.json;
     do
 	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> "$justLinks"
+	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
+	echo "$thisLink	$theseTimes" >> "$justLinks"
     done
     sort --version-sort "$justLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
@@ -200,7 +199,6 @@ doSIG()
 	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	echo "$thisLink $theseTimes" >> "$justLinks"
     done
@@ -264,8 +262,8 @@ doRecordings()
     msg "Output file is $HTMLFile"
     #echo "$gThisList"
 #    exit
-    getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
- #   downloadRecordings
+ #   getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
+    downloadRecordings
 
 }
 getParticipants()
@@ -292,13 +290,11 @@ downloadRecordings()
     recDir=~/Recordings
     awk -F "\t" '{print $3}' download.links.tsv | awk -F "/" '{print $6}' | xargs -I filename touch ~/Recordings/filename
     mkdir -p "$recDir"
-    while IFS='' read -r thisRecording ; do
-	  msg "Got this: $thisRecording"
-	  thisFile=$(awk -F "\t" '{print $3}' $thisRecording)
+    awk -F "\t" '{print $3}' $downloadLinks 
 	  if [ ! -f $thisFile ]; then
 	      touch $thisFile
 	  fi
-    done    < "$downloadLinks"
+ #   done    < "$downloadLinks"
 }
 
 while getopts ":r:t:nShv" opt; do
@@ -355,7 +351,8 @@ while getopts ":r:t:nShv" opt; do
 		    ###        Committees
 		    trackingField="Committee Meeting"
 		    rptTitle="Zoom Links for Committee Meetings"
-		    cmd=Committees
+		    cmd=Mtg
+		    rptType=Committees
 		    ;;
 		[Ee]vent*)
 		    ###        Events
@@ -367,13 +364,15 @@ while getopts ":r:t:nShv" opt; do
 		    ###        Clubs
 		    trackingField="Club Meeting"
 		    rptTitle="Zoom Links for Clubs and Groups"
-		    cmd=Clubs
+		    cmd=Mtg
+		    rptType=Clubs
 		    ;;
 		SIG)
 		    ### SIG - Special Interest Group
 		    trackingField="SIG"
 		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
-		    cmd=SIG
+		    cmd=Mtg
+		    rptType=SIG
 		    ;;
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
@@ -406,7 +405,7 @@ if [[ -z $cmd ]]; then
     echo "%% *Error* - Missing meeting type or recording"
     help
 fi
-do$cmd 
+do$cmd $rptType
 end_time=$(date -u +%s)
 elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"

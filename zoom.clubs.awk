@@ -11,10 +11,11 @@ BEGIN {}
     printf "<br>Meeting ID: %s", $5
     printf "<br>Password: %s", $6
     printf "<br/>%s\n", $7
-#    if (length($8) > 0) {
-	printf "<p><b>Meeting Times</b></p>\n"
-	for(i=8; i<=NF; i++) printf "%s<br/>\n", (strftime("%B %d, %Y %-I:%M %p", $i))
- #   }
+    if (length($8) > 0) {
+	        printf "<h3>Meeting Times</h3>\n"
+		for(i=8; i<=NF; i++) printf "%s<br/>\n", (strftime("%B %d, %Y %-I:%M %p", $i))
+    }
 }
 END{}
+	# 
     
