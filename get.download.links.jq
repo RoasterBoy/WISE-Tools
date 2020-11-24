@@ -1,1 +1,1 @@
-.[] | .meetings[] | select(.id == ($ID | tonumber)) | [(.start_time|fromdate), .topic, (.recording_files[] | select(.file_type == "MP4") | .download_url)] | @tsv
+select(.total_records > 0) | .meetings[] | [select(.topic|test("^[ABCDS][0-9]+")) | . ,(.start_time|fromdate), .topic, (.recording_files[] | select(.file_type == "MP4") | .download_url)] | @tsv
