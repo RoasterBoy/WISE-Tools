@@ -288,7 +288,10 @@ getParticipants()
 downloadRecordings()
 {
     recDir=~/Recordings
-    awk -F "\t" '{print $3}' download.links.tsv | awk -F "/" '{print $6}' | xargs -I filename touch ~/Recordings/filename
+    echo "Does not work yet"
+    exit
+    awk -F "\t" '{printf "%s<br/>\n", (strftime("%B %d, %Y %-I:%M %p",$1))}' 
+    F "\t" '{print $3}' download.links.tsv | awk -F "/" '{print $6}' | xargs -I filename touch ~/Recordings/filename
     mkdir -p "$recDir"
     awk -F "\t" '{print $3}' $downloadLinks 
 	  if [ ! -f $thisFile ]; then

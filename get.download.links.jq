@@ -1,1 +1,1 @@
-select(.total_records > 0) | .meetings[] | [select(.topic|test("^[ABCDS][0-9]+")) | . ,(.start_time|fromdate), .topic, (.recording_files[] | select(.file_type == "MP4") | .download_url)] | @tsv
+.[].meetings[] | select(.topic|test("^[AB][0-9]+")) | [(.topic | match("([A-D][0-9]+)"; "g") | .string), (.start_time | fromdate), (.recording_files[] |  select(.file_type == "MP4") | .download_url) ] | @tsv
