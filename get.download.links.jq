@@ -1,1 +1,1 @@
-.[].meetings[] | select(.topic|test("^[AB][0-9]+")) | [(.topic | match("([A-D][0-9]+)"; "g") | .string), (.start_time | fromdate), (.recording_files[] |  select(.file_type == "MP4") | .download_url) ] | @tsv
+def code(t): t  | match("([A-D][0-9]+)"; "g") | .string   ;.[].meetings[] | select(.recording_files[].file_type == "MP4") | select(.topic|test("^[AB][0-9]+")) | [code(.topic), (.recording_files[] | select(.file_type == "MP4") | (.recording_start | fromdate | strftime("%Y-%m-%d-%H-%M")), .download_url)] | @tsv

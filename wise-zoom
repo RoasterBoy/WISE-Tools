@@ -289,15 +289,15 @@ downloadRecordings()
 {
     recDir=~/Recordings
     echo "Does not work yet"
-    exit
-    awk -F "\t" '{printf "%s<br/>\n", (strftime("%B %d, %Y %-I:%M %p",$1))}' 
-    F "\t" '{print $3}' download.links.tsv | awk -F "/" '{print $6}' | xargs -I filename touch ~/Recordings/filename
     mkdir -p "$recDir"
-    awk -F "\t" '{print $3}' $downloadLinks 
-	  if [ ! -f $thisFile ]; then
-	      touch $thisFile
-	  fi
- #   done    < "$downloadLinks"
+    while IFS='' read -r thisItem; do
+	thisFile=$(echo $thisItem | awk  '{printf "%s-%s.MP4\n", $1, $2}')
+	downloadUrl=$(echo $thisItem | awk  '{print $3}')
+	if [ ! -f $recDir/$thisFile ]; then
+	    wget "$downloadUrl" -o $recDir/$thisFile
+#	    touch $recDir/$thisFile
+	fi
+    done    < "$downloadLinks"
 }
 
 while getopts ":r:t:nShv" opt; do
