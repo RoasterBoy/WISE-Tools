@@ -13,7 +13,6 @@ msg()
 {
     if [  "$verbose" = true ];
     then
-	#	msgString=$@
 	msgString=$*
 	echo "%% $msgString"
     fi
@@ -21,7 +20,6 @@ msg()
 setup()
 {
     rptType=$1
-#    thisDir=$(cd $(dirname $0) && pwd)
     thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     thisAuth=$(python $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
@@ -47,7 +45,6 @@ init()
 	return
     fi
     msg "Doing initialization"
-#    return
     mkdir -p "$tmp"
     touch "$tmp"/tmp.tmp
     rm -r "${tmp:?}"/*
@@ -57,14 +54,10 @@ getHosts()
 {
     hostList=$tmp/hosts.list
     hostJSON=$tmp/hosts.json
-    # msg "Host list is $hostList"
-    # msg "JSON file is $hostJSON"
     curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
 	 --header 'Authorization: Bearer '"$thisAuth" \
 	 --header 'Cookie: _zm_lang=en-US; cred=E847D55F4DDCDBC0D8EE197899BCB2C9' -o $hostJSON
-    # We might skip $hostJSON when we're confident
     jq -r '.users[] | select(.type == 2)  | .id' $hostJSON > $hostList
-    msg "At end of getHosts"
 }
 getMeetings()
 {
@@ -108,9 +101,6 @@ meetingBasics()
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotItem = "" ]] ; then
-	    # msg "No $rptType found"
-	    # Get rid of this file
-#	     mv "$tmp"/"$thisMtg".details.json "$tmp"/"$thisMtg".details.json-null
 	    rm "$tmp"/"$thisMtg".details.json
 	else
 	    msg "Got $gotTopic"
@@ -118,7 +108,7 @@ meetingBasics()
 	fi
 	
     done < "$tmp"/meetings.list
-    gThisList=$rptTypeList # return name of the meeting type list
+    gThisList=$rptTypeList 
 }
 
 doCourses()
@@ -126,7 +116,6 @@ doCourses()
     properName=$1
     msg "Geting dates for $properName"
    meetingBasics Course
-    #
 
     for file in "$tmp"/*.details.json;
     do
@@ -156,6 +145,7 @@ doCourses()
 }
 doClubs()
 {
+    return 0
     properName=$1
     msg "Geting dates for $properName"
     meetingBasics Club
@@ -175,7 +165,7 @@ doClubs()
 doMtg()
 {
 
-    meetingBasics $thids # uses $rptType $rptName
+    meetingBasics $tracingField
     
     for file in "$tmp"/*.details.json;
     do
@@ -191,8 +181,9 @@ doMtg()
 }
 doSIG()
 {
+    return 0
     properName=$1
-    meetingBasics SIGs # uses $rptType $rptName
+    meetingBasics SIGs
     msg "Geting dates for $properName"
     for file in "$tmp"/*.details.json;
     do
@@ -209,6 +200,7 @@ doSIG()
 }
 doEvents()
 {
+    return 0
     properName=$1
     msg "Geting dates for $properName"
    
@@ -219,9 +211,7 @@ doEvents()
 	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	#	theseTimes=$(jq -r '.occurrences[] | select(.status == "available")  | .start_time ' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	theseTimes=$(jq -r '.start_time' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "%s" TIME)
-#	theseTimes=$(jq -r '(.start_time) ' "$file" )
+	theseTimes=$(jq -r '(.start_time) ' "$file"
 	echo "$theseTimes	$thisLink" >> "$justLinks"
     done
     sort "$justLinks" > "$sortedLinks"
@@ -232,13 +222,11 @@ doRecordings()
 {
     msg "Geting recordings for $trackingField"
     getHosts
-    # Get all events of $rptType
-    meetingBasics # returns "$gThisList"    # get IDs of these events
+    meetingBasics 
     if [[ "$gThisList" = "" ]]; then
 	echo "Missing global list $gThisList"
 	exit
     fi
-    ### TODO - We need to get recordings from 30 days ago, not just a fixed day. Currently 2020-09-01
     since=$(date +%Y-%m-%d -d "30 days ago")
     while IFS='' read -r thisHost; do
 	curl -s --request GET \
@@ -252,7 +240,6 @@ doRecordings()
     msg "Initializing $downloadLinks"
     :>$downloadLinks
     jq -s '.' "$tmp"/*recordings.json > "$tmp"/big.json
-    # echo "We have this gThisList: " "$gThisList"
     while IFS='' read -r thisItem; do
 	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.recording.links.jq "$tmp"/big.json >> "$recordingLinks"
 	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.download.links.jq "$tmp"/big.json >> "$downloadLinks"
@@ -260,9 +247,7 @@ doRecordings()
     sort -r "$recordingLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
-    #echo "$gThisList"
-#    exit
- #   getParticipants  # uses gThisList for the lsit of meetings whence participants will be fetched
+    getParticipants  
     downloadRecordings
 
 }
@@ -295,7 +280,6 @@ downloadRecordings()
 	downloadUrl=$(echo $thisItem | awk  '{print $3}')
 	if [ ! -f $recDir/$thisFile ]; then
 	    wget "$downloadUrl" -o $recDir/$thisFile
-#	    touch $recDir/$thisFile
 	fi
     done    < "$downloadLinks"
 }
@@ -305,27 +289,25 @@ while getopts ":r:t:nShv" opt; do
     case ${opt} in
 	r )
 	    getAll=true
-	    # This means that we'll also look at upcoming meetings, but won't find recordings.
-	    echo "thing here"
 	    tmpType=$OPTARG
 	    tmpType=${tmpType,,}
 	    rptType=Recording
 	    case "$tmpType" in
 		### -r Zoom recording type
-		[Cc]ourse*)
+		course*)
 		    ###        Courses
 		    trackingField="Course"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
 		;;
-		[Ee]vent*)
+		event*)
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
 		    ;;
-		[Cc]ommittee*)
-		    ###        Events
+		committee*)
+		    ###        Committee
 		    trackingField="Committee Meeting"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
@@ -338,12 +320,11 @@ while getopts ":r:t:nShv" opt; do
 
 	    ;;
 	S ) # capital S
-	    ### Simplified output to allow us to use the data in a spreadsheet.
+	    ### -S Simplified output to allow us to use the data in a spreadsheet.
 	    simple=true
 	    ;;
 	t )
 	    ### -t Zoom meeting type
-	    echo "thing here"
 	    tmpType=$OPTARG
 	    tmpType=${tmpType,,}
 	    # matching upper or lower, singular or plural
@@ -375,15 +356,15 @@ while getopts ":r:t:nShv" opt; do
 		    cmd=Mtg
 		    rptType=Clubs
 		    ;;
-		sig)
-		    ### SIG - Special Interest Group
+		sig*)
+		    ###        SIG
 		    trackingField="SIG"
 		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
 		    cmd=Mtg
 		    rptType=SIG
 		    ;;
 		group*)
-		    ### SIG - Special Interest Group
+		    ###        Group
 		    trackingField="Group Meeting"
 		    rptTitle="Zoom Links for Group Meetings"
 		    cmd=Mtg
