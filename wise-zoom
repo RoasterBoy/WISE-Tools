@@ -301,11 +301,14 @@ downloadRecordings()
 }
 
 while getopts ":r:t:nShv" opt; do
+    shopt -s nocasematch
     case ${opt} in
 	r )
 	    getAll=true
 	    # This means that we'll also look at upcoming meetings, but won't find recordings.
+	    echo "thing here"
 	    tmpType=$OPTARG
+	    tmpType=${tmpType,,}
 	    rptType=Recording
 	    case "$tmpType" in
 		### -r Zoom recording type
@@ -340,43 +343,52 @@ while getopts ":r:t:nShv" opt; do
 	    ;;
 	t )
 	    ### -t Zoom meeting type
+	    echo "thing here"
 	    tmpType=$OPTARG
+	    tmpType=${tmpType,,}
 	    # matching upper or lower, singular or plural
 	    msg "Got type $tmpType"
 	    case "$tmpType" in
-		[Cc]ourse*)
+		course*)
 		    ###        Courses
 		    trackingField="Course"
 		    rptTitle="Zoom Links for Courses"
 		    cmd=Courses
 		;;
-		[Cc]ommittee*)
+		committee*)
 		    ###        Committees
 		    trackingField="Committee Meeting"
 		    rptTitle="Zoom Links for Committee Meetings"
 		    cmd=Mtg
 		    rptType=Committees
 		    ;;
-		[Ee]vent*)
+		event*)
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="Zoom Links for Events"
 		    cmd=Events
 		    ;;
-		[Cc]lub*)
+		club*)
 		    ###        Clubs
 		    trackingField="Club Meeting"
 		    rptTitle="Zoom Links for Clubs and Groups"
 		    cmd=Mtg
 		    rptType=Clubs
 		    ;;
-		SIG)
+		sig)
 		    ### SIG - Special Interest Group
 		    trackingField="SIG"
 		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
 		    cmd=Mtg
 		    rptType=SIG
 		    ;;
+		group*)
+		    ### SIG - Special Interest Group
+		    trackingField="Group Meeting"
+		    rptTitle="Zoom Links for Group Meetings"
+		    cmd=Mtg
+		    rptType=group
+		    ;;		
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
 		    help
@@ -401,7 +413,6 @@ while getopts ":r:t:nShv" opt; do
 	    ;;
     esac
 done
-msg "Will do \$rptType $rptType for \$trackingField $trackingField"
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
