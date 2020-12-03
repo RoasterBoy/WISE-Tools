@@ -5,6 +5,7 @@ thisFile=${thisParm:25:-4}
 unzip -q -c "$thisParm" > $thisFile
 thisDir=`basename "$PWD"`
 justFile=$(basename "$thisFile")
+justFile=${justFile%.*}
 outFile=$justFile.html
 :> "$outFile"
 echo "<h1>$justFile</h1>" >> "$outFile"
@@ -21,4 +22,4 @@ csvcut -c 11 "$thisFile" | sed 's/""//g' | sed '/^$/d ' | sed 's/$/\<br\/\>/g' >
 
 echo "<hr/><p>" >> "$outFile"
 csvstat --freq -c 12 "$thisFile" | sed 's/["{}]//g'| sed 's/$/\<br\/\>/g'  >> "$outFile"
-
+echo "Evaluation report is $outFile"
