@@ -211,7 +211,7 @@ doEvents()
 	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r '(.start_time) ' "$file"
+	theseTimes=$(jq -r '(.start_time) ' "$file")
 	echo "$theseTimes	$thisLink" >> "$justLinks"
     done
     sort "$justLinks" > "$sortedLinks"
