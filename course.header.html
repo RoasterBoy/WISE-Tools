@@ -1,0 +1,76 @@
+  <style>
+
+    @media only screen and (max-width: 600px) {
+    .column {
+    font-size: 12px;
+    }
+    }
+    .column {
+        float: left;
+        display: inline-block;
+        padding: 10px;
+        text-align: center;
+        font-size: 25px;
+        cursor: pointer;
+        color: #005195;
+        border-radius: 25px;
+        border:solid #005195; 
+        margin:10px;
+    }
+    .containerTab {
+      padding: 20px;
+      color: #005195;
+      border:solid #005195;
+    }
+
+    /* Clear floats after the columns */
+    .row:after {
+    content: "";
+    display: table;
+    clear: both;
+    }
+
+    /* Closable button inside the image */
+    .closebtn {
+    float: right;
+    color: #005195;
+    font-size: 35px;
+    cursor: pointer;
+    }
+    @media print {
+    column-count: 3;
+    .column {
+    font-weight: bold;
+    }
+    .containerTab {
+    display: inline;
+    text-indent: 1em;
+    }
+      }
+    @media print {
+
+    .column {
+    font-weight: bold;
+    box-decoration-break: clone;
+    }
+
+    .containerTab {
+    clear: both;
+    display: block !important;
+    text-indent: 1em;
+        }}
+  </style>
+  
+  <script>
+    // Hide all elements with class="containerTab", except for the one that matches the clickable grid column
+    function openTab(tabName) {
+    var i, x;
+    x = document.getElementsByClassName("containerTab");
+    for (i = 0; i < x.length; i++) {
+		    x[i].style.display = "none";
+		    }
+		    document.getElementById(tabName).style.display = "inline-block";
+		    }
+		    </script>
+  <div class="row">
+    
