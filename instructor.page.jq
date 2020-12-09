@@ -1,0 +1,1 @@
+.[].Events[] |[ .Name, (.StartDate | strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %d, %Y %-I:%M%p"))] | @tsv'
