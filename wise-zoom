@@ -17,6 +17,14 @@ msg()
 	echo "%% $msgString"
     fi
 }
+Vmsg()
+{
+    if [ "$Verbose" = true ];
+    then
+	msgString=$*
+	echo "%% $msgString"
+    fi
+}
 setup()
 {
     rptType=$1
@@ -70,10 +78,10 @@ getMeetings()
     else
 	retrieveType="upcoming"	
     fi
-	msg "Getting all meetings that are $retrieveType"
+	Vmsg "Getting all meetings that are $retrieveType"
 	getHosts # returns $hostList
 	while IFS='' read -r thisHost ; do
-	    msg "Working on meetings for $thisHost"
+	    Vmsg "Working on meetings for $thisHost"
 
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
@@ -108,7 +116,8 @@ meetingBasics()
 	fi
 	
     done < "$tmp"/meetings.list
-    gThisList=$rptTypeList 
+    gThisList=$rptTypeList
+    echo "Got these: \$gThisList, $gThisList and \$rptTypeList, $rptTypeList"
 }
 
 doCourses()
@@ -120,7 +129,7 @@ doCourses()
     for file in "$tmp"/*.details.json;
     do
 	thisTopic=$(jq '.topic' "$file")
-	msg "Deep Work on $thisTopic"
+	Vmsg "Deep Work on $thisTopic"
 	if [[ $simple = "true" ]]; then
 	    jqFile="$thisDir"/make.simple.course.links.jq
 	    theseTimes=""
@@ -143,25 +152,6 @@ doCourses()
 	msg "Output file is $HTMLFile"
     fi
 }
-doClubs()
-{
-    return 0
-    properName=$1
-    msg "Geting dates for $properName"
-    meetingBasics Club
-
-    for file in "$tmp"/*.details.json;
-    do
-	thisTopic=$(jq '.topic' "$file")
-	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
-	echo "$thisLink	$theseTimes" >> "$justLinks"
-    done
-    sort --version-sort "$justLinks" > "$sortedLinks"
-    gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
-    msg "HTML Link file is $HTMLFile"
-}
 doMtg()
 {
 
@@ -178,45 +168,6 @@ doMtg()
     sort --version-sort "$justLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
     sed -ibak "s/  / /g" $HTMLFile
-    msg "HTML Link file is $HTMLFile"
-}
-doSIG()
-{
-    return 0
-    properName=$1
-    meetingBasics SIGs
-    msg "Geting dates for $properName"
-    for file in "$tmp"/*.details.json;
-    do
-	thisTopic=$(jq '.topic' "$file")
-	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	echo "$thisLink $theseTimes" >> "$justLinks"
-    done
-    sort --version-sort "$justLinks" > "$sortedLinks"
-    gawk -F '\t' -f "$thisDir"/zoom.SIGs.awk "$sortedLinks" >> "$HTMLFile"
-    msg "HTML Link file is $HTMLFile"
-    
-}
-doEvents()
-{
-    return 0
-    properName=$1
-    msg "Geting dates for $properName"
-   
-    meetingBasics Event
-    
-    for file in "$tmp"/*.details.json;
-    do
-	thisTopic=$(jq '.topic' "$file")
-	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r '(.start_time) ' "$file")
-	echo "$theseTimes	$thisLink" >> "$justLinks"
-    done
-    sort "$justLinks" > "$sortedLinks"
-    gawk -F '\t' -f "$thisDir"/zoom.events.awk "$sortedLinks" >> "$HTMLFile"
     msg "HTML Link file is $HTMLFile"
 }
 doRecordings()
@@ -254,8 +205,9 @@ doRecordings()
 }
 getParticipants()
 {
+    msg "Getting participants"
     while IFS='' read -r partMtg ; do 
-    msg "Also getting participant detail for this meeting: $partMtg"
+    Vmsg "Also getting participant detail for this meeting: $partMtg"
 
     curl -s --location --request GET \
 	 'https://api.zoom.us/v2/metrics/meetings/'"$partMtg"'/participants?type=past' \
@@ -274,18 +226,17 @@ getParticipants()
 downloadRecordings()
 {
     recDir=~/Recordings
-    echo "Does not work yet"
     mkdir -p "$recDir"
     while IFS='' read -r thisItem; do
 	thisFile=$(echo $thisItem | awk  '{printf "%s-%s.MP4\n", $1, $2}')
 	downloadUrl=$(echo $thisItem | awk  '{print $3}')
 	if [ ! -f $recDir/$thisFile ]; then
-	    wget "$downloadUrl" -o $recDir/$thisFile
+	    wget -v "$downloadUrl" -o $recDir/$thisFile
 	fi
     done    < "$downloadLinks"
 }
 
-while getopts ":r:t:nShv" opt; do
+while getopts ":r:t:nShvV" opt; do
     shopt -s nocasematch
     case ${opt} in
 	r )
@@ -313,6 +264,12 @@ while getopts ":r:t:nShv" opt; do
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
 		    ;;
+		training*)
+		    ###        Training
+		    trackingField="Training Sessions"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    ;;
 		* )
 		    echo "%% Invalid tracking field for recordngs : $OPTARG"
 		    help
@@ -337,6 +294,13 @@ while getopts ":r:t:nShv" opt; do
 		    rptTitle="Zoom Links for Courses"
 		    cmd=Courses
 		;;
+		training)
+		    ###        Committees
+		    trackingField="Training"
+		    rptTitle="Zoom Links for Training Sessions"
+		    cmd=Mtg
+		    rptType=Training
+		    ;;
 		committee*)
 		    ###        Committees
 		    trackingField="Committee Meeting"
@@ -348,7 +312,7 @@ while getopts ":r:t:nShv" opt; do
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="Zoom Links for Events"
-		    cmd=Events
+		    cmd=Mtg
 		    ;;
 		club*)
 		    ###        Clubs
@@ -388,6 +352,10 @@ while getopts ":r:t:nShv" opt; do
 	v )
 	    ### -v Set verbose mode
 	    verbose="true"
+	    ;;
+	V )
+	    ### -V Set extra-verbose mode
+	    Verbose="true"
 	    ;;
 	* )
 	    echo "Invalid Option: -$OPTARG" 1>&2
