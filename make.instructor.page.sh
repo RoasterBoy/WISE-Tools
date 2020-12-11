@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 tmp=~/tmp/wa
+mkdir -p $tmp 
 setup()
 {
     thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -19,9 +20,10 @@ setup()
 	echo "<p>Updated: $thisDate" >> "$HTMLFile"
     fi
 }
+setup 
+
 rptTtile="WISE Course Materials"
 curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events'"$filterString" -o $tmp/events.json
 jq '.[] | sort_by(.Id) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
 jq --slurp -f $thisDir/instructor.page.jq $tmp/events.json > $tmp/events.tsv
-awk -F "\t" '{printf "<h2>%s</h2><p>%s<br>Link:", $1, $2}' events.tsv > $tmp/Instructor.html
