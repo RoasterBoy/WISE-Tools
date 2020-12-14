@@ -3,6 +3,7 @@
 set -e
 start_time="$(date -u +%s)"
 simple=false
+download=false
 help()
 {
     thisScript=$(which "$0")
@@ -199,8 +200,11 @@ doRecordings()
     sort -r "$recordingLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
-    getParticipants  
-    downloadRecordings
+    getParticipants
+    if [[ $download = "" ]]; then
+	msg "Downloading recordings"
+	downloadRecordings
+    fi
 
 }
 getParticipants()
@@ -231,14 +235,20 @@ downloadRecordings()
 	thisFile=$(echo $thisItem | awk  '{printf "%s-%s.MP4\n", $1, $2}')
 	downloadUrl=$(echo $thisItem | awk  '{print $3}')
 	if [ ! -f $recDir/$thisFile ]; then
-	    wget -v "$downloadUrl" -o $recDir/$thisFile
+	    wget  --content-disposition -v "$downloadUrl" -O<<EOF $recDir/$thisFile
+EOF
 	fi
     done    < "$downloadLinks"
 }
 
-while getopts ":r:t:nShvV" opt; do
+while getopts "d:r:t:nShvV" opt; do
     shopt -s nocasematch
     case ${opt} in
+	d )
+	    ### -d Download recordings
+	    ### TODO make this only valid with -r
+	    download=true
+	    ;;
 	r )
 	    getAll=true
 	    tmpType=$OPTARG
