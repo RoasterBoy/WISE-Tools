@@ -168,7 +168,7 @@ doMtg()
     done
     sort --version-sort "$justLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
-    sed -ibak "s/  / /g" $HTMLFile
+    sed -i "s/  / /g" $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
 doRecordings()
