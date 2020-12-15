@@ -1,15 +1,21 @@
 #!/bin/bash
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-str="$*"
-mtgID=${str//[[:blank:]]/}
-echo $mtgID
+mtgID=$1
+pollID=$2
+thisFile=$3
+if [[ -z $mtgID ]]; then
+    echo "No meeting id"
+    exit
+fi
 thisAuth=$(python $thisDir/get.auth.py)
-curl --request GET \
-     https://api.zoom.us/v2/meetings/'"$mtgID"'/polls \
-     -H 'Authorization: Bearer' "$thisAuth"
+curl --request PUT \
+     --data "@$thisFile" \
+     'https://api.zoom.us/v2/meetings/'"$mtgID"'/polls/'"$pollID" \
+       --header 'content-type: application/json'\
+       --header 'Authorization: Bearer '"$thisAuth" 
 # content-type: application/json'  
 #curl --request POST -url https://api.zoom.us/v2/meetings/$mtgID/polls --header 'Authorization: Bearer '"$thisAuth" \
-#      --header 'content-type: application/json'\
+#     
 #      --data @poll.json
 
 
