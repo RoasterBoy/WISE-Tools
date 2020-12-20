@@ -1,0 +1,20 @@
+#!/bin/bash
+thisAuth=$(python ~/WISE-Tools/get.auth.py)
+# all of the instances of a meeting
+curl -s --location --request GET \
+     'https://api.zoom.us/v2/past_meetings/92513845810/instances/' \
+     --header 'Authorization: Bearer '"$thisAuth" | jq '.meetings[].uuid' | xargs -I UUID  \
+    curl  -s   'https://api.zoom.us/v2/metrics/meetings/'UUID'/participants?type=past' --header 'Authorization: Bearer '"$thisAuth" -o UUID.json
+	       
+#curl  -s   'https://api.zoom.us/v2/metrics/meetings/r4SDswCSRa2P7aCLG8sw2Q==/participants?type=past' \
+
+
+# We have an issue of people logging in to a meeting when the class is not scheduled.
+# Sometimes, members get confused about the start time, the host hasn't shown up yet, or the host/CA
+# want to practice, using the meeting URL
+# Dunno how to filter out those mistaken sessions. 
+
+# don't think that we need this
+# curl   -s  'https://api.zoom.us/v2/past_meetings/r4SDswCSRa2P7aCLG8sw2Q==/participants' \
+  #   --header 'Authorization: Bearer '"$thisAuth" -o boo.json
+
