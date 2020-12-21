@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+thisTitle=""
+flushDir=""
+tmp=~/tmp/wa
+mkdir -p $tmp
+iFile=$tmp/instructor.list.html
+thisDir=$(dirname "$0")
+update=true
+
+mungFiles ()
+{
+echo "Got thisTitle=$thisTitle"
+echo "<head>  <style>" > $iFile
+cat $thisDir/course.list.css >> $iFile
+echo "</style></head>" >> $iFile
+if [ "$update" = true ]; then
+    get.events.sh -u -r
+fi
+#
+while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
+    jq -r -f instructor.list.jq     $tmp/$thisEvent-details.json >> $iFile
+done  < $tmp/events.list
+}
+
+while getopts "unh" opt; do
+    case ${opt} in
+	u ) # Get Upcoming Events
+	    filter="?$filter=IsUpcoming%20eq%20true"
+	    ;;
+	    n )	  
+	    update=false
+;;	    
+	h) # header
+	    thisTitle=$OPTARG
+	    ;;
+	?)
+	    getHelp
+	    ;;
+	
+    esac
+done
+mungFiles 
