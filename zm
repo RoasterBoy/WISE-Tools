@@ -167,10 +167,12 @@ doMtg()
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
 	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
-	echo "$thisLink	$theseTimes" >> "$justLinks"
+#	echo "$thisLink	$theseTimes" >> "$justLinks"
+	echo "$theseTimes	$thisLink" >> "$justLinks"
     done
-    sort --version-sort "$justLinks" > "$sortedLinks"
-    gawk -F '\t' -f "$thisDir"/zoom.clubs.awk "$sortedLinks" >> "$HTMLFile"
+    
+    sort -k2M -k3n "$justLinks" > "$sortedLinks"
+    gawk -F '\t' -f "$thisDir"/$awkFile "$sortedLinks" >> "$HTMLFile"
     sed -i "s/  / /g" $HTMLFile
     msg "HTML Link file is $HTMLFile"
 }
@@ -340,6 +342,7 @@ while getopts "d:r:Pt:nShvV" opt; do
 		    trackingField="Training"
 		    rptTitle="Zoom Links for Training Sessions"
 		    cmd=Mtg
+		    awkFile=zoom.clubs.awk
 		    rptType=Training
 		    ;;
 		committee*)
@@ -347,12 +350,14 @@ while getopts "d:r:Pt:nShvV" opt; do
 		    trackingField="Committee Meeting"
 		    rptTitle="Zoom Links for Committee Meetings"
 		    cmd=Mtg
+		    awkFile=zoom.clubs.awk
 		    rptType=Committees
 		    ;;
 		event*)
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="Zoom Links for Events"
+		    awkFile=zoom.events.awk
 		    cmd=Mtg
 		    ;;
 		club*)
@@ -360,6 +365,7 @@ while getopts "d:r:Pt:nShvV" opt; do
 		    trackingField="Club Meeting"
 		    rptTitle="Zoom Links for Clubs and Groups"
 		    cmd=Mtg
+		    awkFile=zoom.clubs.awk
 		    rptType=Clubs
 		    ;;
 		sig*)
@@ -367,12 +373,14 @@ while getopts "d:r:Pt:nShvV" opt; do
 		    trackingField="SIG"
 		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
 		    cmd=Mtg
+		    awkFile=zoom.clubs.awk
 		    rptType=SIG
 		    ;;
 		group*)
 		    ###        Group
 		    trackingField="Group Meeting"
 		    rptTitle="Zoom Links for Group Meetings"
+		    awkFile=zoom.clubs.awk
 		    cmd=Mtg
 		    rptType=group
 		    ;;		
