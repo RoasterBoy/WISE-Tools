@@ -267,7 +267,7 @@ doParticipation()
 }
 
 
-while getopts "d:r:Pt:nShvV" opt; do
+while getopts "dr:Pt:nShvV" opt; do
     shopt -s nocasematch
     case ${opt} in
 	d )
