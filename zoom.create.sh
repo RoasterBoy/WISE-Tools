@@ -45,7 +45,7 @@ while IFS=$'\t' read -r topic thisDate sessions; do
     payload=payload$counter.json
     courseFile=course$counter.json
     password=$(date '+%s')
-    dow=$(date --date="$2" +%u)
+    dow=$(date --date="$thisStart" +%u)
     thisDow=$((dow + 1)) 
     thisStart=$(date --date="$thisDate" +"%Y-%m-%dT%H:%M:00")
 
@@ -70,9 +70,11 @@ while IFS=$'\t' read -r topic thisDate sessions; do
        "recurrence": {
        		     "type": 2,
        		     "weekly_days": "$thisDow",
-		     "repeat_interval": $sessions
+		     "repeat_interval": 1,
+		     "end_times": $sessions
 		          },
      "start_time": "$thisStart",
+     "duration": 90,
      "settings": {
       		     "join_before_host": true,
      		     "jbh_time": 15,
@@ -89,9 +91,9 @@ while IFS=$'\t' read -r topic thisDate sessions; do
 			}]
     }
 EOF
-#curl  --location --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings' \
- #     --header 'content-type: application/json' -d "@$payload" \
-  #    --header 'Authorization: Bearer '"$thisAuth" -o $courseFile.json
+curl  --location --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings' \
+      --header 'content-type: application/json' -d "@$payload" \
+      --header 'Authorization: Bearer '"$thisAuth" -o $courseFile.json
 done < $inFile
 
 # Now do it
