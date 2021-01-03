@@ -1,1 +1,1 @@
-"https://assumptionwise.org/event-" as $orgUrl | .Events[] | if (.Tags[]|select(. == "fall")) then [ .Name, $orgUrl + (.Id | tostring) , (.Sessions[].StartDate | strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %e,")) ] | @tsv else empty end
+"https://assumptionwise.org/event-" as $orgUrl |.Events[] | [.Name, $orgUrl + (.Id|tostring), "Starts: " + ( .StartDate | strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %-e %-I:%M %p"))] | @tsv

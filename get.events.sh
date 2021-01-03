@@ -18,17 +18,28 @@
 ###   get.events.sh [options]
 ###
 ### Options:
+
+tmp=~/tmp/wa
+outdir=~/tmp/out
+getReg=false
+eventFilter=""
+tagFilter=""
+
+
 help()
 {
     thisScript=$(which "$0")
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
     }
-tmp=/tmp/wa
-outdir=/tmp/out
-getReg=false
-eventFilter=""
-tagFilter=""
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	echo "%% $msgString"
+    fi
+}
 setup ()
 {
 #
@@ -64,6 +75,7 @@ getEvents ()
 curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events'"$filterString" -o $tmp/events.json
 jq '.[] | sort_by(.Id) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
+msg "Events information is in $tmp/events.json"
 }
 
 #--------------------------------------------------------- 
@@ -102,15 +114,6 @@ curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events/'$eventId -o $tmp/$eventId.json
 }
 
-msg()
-{
-    if [  "$verbose" = true ];
-    then
-#       echo "Verbose is $verbose"                                                                                                  
-        thisString=$@
-        echo "%% $thisString"
-    fi
-}
 while getopts "ue:s:t:hvr" opt; do
     case ${opt} in
 	e ) #get this one event
