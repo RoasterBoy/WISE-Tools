@@ -18,7 +18,7 @@
 ###   get.events.sh [options]
 ###
 ### Options:
-
+start_time="$(date -u +%s)"
 tmp=~/tmp/wa
 outdir=~/tmp/out
 getReg=false
@@ -87,22 +87,22 @@ mungFiles ()
 while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
 #    echo "Got this event $thisEvent"
     if  $getReg ; then
-	if [ ! -f $tmp/$thisEvent-registrations.json ]; then
+	if [ ! -f $tmp/$thisEvent.registrations.json ]; then
 	    curl -s --header "Authorization: Bearer $thisAuth"\
  		 "https://api.wildapricot.org/v2.2/accounts/$WA_account/eventregistrations?eventId=$thisEvent&includeWaitList=true" \
-		 -o $tmp/$thisEvent-registrations.json
+		 -o $tmp/$thisEvent.registrations.json
 	fi
-#	jq --raw-output '.[] | [.Event.Id,.Contact.Id, .OnWaitlist] | @tsv' $tmp/$thisEvent-registrations.json > $outdir/$thisEvent-registration.tsv
+#	jq --raw-output '.[] | [.Event.Id,.Contact.Id, .OnWaitlist] | @tsv' $tmp/$thisEvent.registrations.json > $outdir/$thisEvent-registration.tsv
     fi
-    if [ ! -f $tmp/$thisEvent-details.json ]; then
+    if [ ! -f $tmp/$thisEvent.details.json ]; then
 	curl -s --header "Authorization: Bearer $thisAuth"  \
 	     "https://api.wildapricot.org/v2.2/accounts/$WA_account/events/$thisEvent"\
-	     -o $tmp/$thisEvent-details.json
+	     -o $tmp/$thisEvent.details.json
 	# TODO Not sure why this file might not exist
 	# TODO If we stored this stuff in a database, we could just update as needed.
-	if [ -e $tmp/$thisEvent-details.json ]
+	if [ -e $tmp/$thisEvent.details.json ]
 	then
-	    thisName=$(jq '.Name' $tmp/$thisEvent-details.json)
+	    thisName=$(jq '.Name' $tmp/$thisEvent.details.json)
 	fi
 	msg "Working on $thisName"
 	fi
@@ -164,3 +164,6 @@ if [ -z ${eventId} ]; then
 else
     getSingle $eventId
 fi
+end_time=$(date -u +%s)
+elapsed=$((end_time-start_time))
+msg "Elapsed time: $elapsed seconds"
