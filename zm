@@ -41,7 +41,7 @@ setup()
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
 	echo "<h2>$rptTitle</h2>" > "$HTMLFile"
-	thisDate=$(date  +"%B %d, %Y %-I:%m %p")
+	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
 	if [ -v "$thisNote" ]; then
 	    echo "<b>*** $thisNote ***</b>" >> $HTMLFile
 	fi
