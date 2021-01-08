@@ -50,7 +50,7 @@ setup()
 }
 init()
 {
-    tmop=~/tmp/zoom
+    tmp=~/tmp/zoom
     rptType=$1
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
