@@ -6,9 +6,10 @@ csvFile=$tmp/stats.csv
 statsFile=~/$(date +"%Y-%m-%d-%H-%M").xlsx
 bigFile=$tmp/big.json
 #
-:>$csvFile
-:>$tsvFile
-#get.events.sh -vru
+:>"$csvFile"
+:>"$tsvFile"
+
+get.events.sh -vru
 while IFS='' read -r thisCourse ; do
     thisLimit=$(jq -r '.RegistrationsLimit' $tmp/$thisCourse.details.json)
     thisName=$(jq -r '.Name' $tmp/$thisCourse.details.json)
