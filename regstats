@@ -14,7 +14,7 @@ while IFS='' read -r thisCourse ; do
     thisLimit=$(jq -r '.RegistrationsLimit' $tmp/$thisCourse.details.json)
     thisName=$(jq -r '.Name' $tmp/$thisCourse.details.json)
     thisCount=$(jq --raw-output 'group_by(.Contact) | length' $tmp/$thisCourse.registrations.json)
-    printf "%s\t%i\t%i\n", "$thisName" $thisCount $thisLimit >> $tsvFile
+    printf "%s\t%i\t%i\n" "$thisName" $thisCount $thisLimit >> $tsvFile
 done < $tmp/events.list
 
 #jq -s '.' $tmp/*registrations.json > $bigFile
