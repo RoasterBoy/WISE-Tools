@@ -29,8 +29,6 @@ die()
 setup()
 {
     rptType=$1
-    thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-    awk=$thisDir/awk
     thisAuth=$(python $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
@@ -115,6 +113,7 @@ meetingBasics()
 	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotItem = "" ]] ; then
 	    rm "$tmp"/"$thisMtg".details.json
+#    	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 	else
 	    msg "Got $gotTopic"
 	    echo "$gotItem" >> "$rptTypeList" 
@@ -152,7 +151,7 @@ doCourses()
 	msg "Sorted links are in $sortedLinks"
     else
 	sort --version-sort "$justLinks" >> "$sortedLinks"
-	gawk -F '\t' -f "$awk"/zoom.courses.awk "$sortedLinks" >> "$HTMLFile"
+	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	msg "Output file is $HTMLFile"
     fi
 }
@@ -203,7 +202,7 @@ doRecordings()
 	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.download.links.jq "$tmp"/big.json >> "$downloadLinks"
     done < "$gThisList"
     sort -r "$recordingLinks" > "$sortedLinks"
-    gawk -F '\t' -f "$awk"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
+    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
     getParticipants
     if [[ $download = "" ]]; then
@@ -269,6 +268,13 @@ doParticipation()
 
 while getopts "n:dr:Pt:nShvV" opt; do
     shopt -s nocasematch
+    #
+    # Setting up some variables that we'll use for paths and files
+    #
+    thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    awkDir=$thisDir/awk
+    jqDir=$thisDir/jq
+    #
     case ${opt} in
 	d )
 	    ### -d Download recordings
@@ -305,7 +311,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    ;;
 		training*)
 		    ###        Training
-		    trackingField="Training Sessions"
+		    trackingField="Training"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
 		    ;;
@@ -338,7 +344,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    ###        Courses
 		    trackingField="Course"
 		    rptTitle="Zoom Links for Courses"
-		    awkFile=$awk/zoom.courses.awk
+		    awkFile=$awkDir/zoom.courses.awk
 		    cmd=Courses
 		;;
 		training)
@@ -346,7 +352,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Training"
 		    rptTitle="Zoom Links for Training Sessions"
 		    cmd=Mtg
-		    awkFile=$awk/zoom.events.awk
+		    awkFile=$awkDir/zoom.events.awk
 		    rptType=Training
 		    ;;
 		committee*)
@@ -354,14 +360,14 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Committee Meeting"
 		    rptTitle="Zoom Links for Committee Meetings"
 		    cmd=Mtg
-		    awkFile=$awk/zoom.clubs.awk
+		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=Committees
 		    ;;
 		event*)
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="Zoom Links for Events"
-		    awkFile=$awk/zoom.events.awk
+		    awkFile=$awkDir/zoom.events.awk
 		    cmd=Mtg
 		    ;;
 		club*)
@@ -369,7 +375,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Club Meeting"
 		    rptTitle="Zoom Links for Clubs and Groups"
 		    cmd=Mtg
-		    awkFile=$awk/zoom.clubs.awk
+		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=Clubs
 		    ;;
 		sig*)
@@ -377,14 +383,14 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="SIG"
 		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
 		    cmd=Mtg
-		    awkFile=$awk/zoom.clubs.awk
+		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=SIG
 		    ;;
 		group*)
 		    ###        Group
 		    trackingField="Group Meeting"
 		    rptTitle="Zoom Links for Group Meetings"
-		    awkFile=$awk/zoom.clubs.awk
+		    awkFile=$awkDir/zoom.clubs.awk
 		    cmd=Mtg
 		    rptType=group
 		    ;;		
