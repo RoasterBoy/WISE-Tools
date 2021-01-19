@@ -1,5 +1,12 @@
 #!/bin/bash
-# Parse options to the `zoom` command
+# TODO Parse options to the `zoom` command
+## TIL
+## 1/12/21
+## When we get this error, it means this
+## "The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256"
+## There's a problem with the Zoom Secret in .bashrc
+##
+
 set -e
 start_time="$(date -u +%s)"
 simple=false
@@ -66,10 +73,11 @@ getHosts()
 {
     hostList=$tmp/hosts.list
     :>$hostList
+    echo "Getting hosts"
     curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
-	 --header 'Authorization: Bearer '"$thisAuth" \
-	 --header 'Cookie: _zm_lang=en-US; cred=E847D55F4DDCDBC0D8EE197899BCB2C9' | \
+	 --header 'Authorization: Bearer '"$thisAuth" | \
 	jq -r '.users[] | select(.type == 2)  | .id' > $hostList
+    echo "Got hosts"
 }
 getMeetings()
 {
@@ -180,7 +188,8 @@ doRecordings()
 {
     msg "Geting recordings for $trackingField"
     getHosts
-    meetingBasics 
+    echo "here"
+    meetingBasics $tracingField
     if [[ "$gThisList" = "" ]]; then
 	echo "Missing global list $gThisList"
 	exit
@@ -191,26 +200,21 @@ doRecordings()
 	     'https://api.zoom.us/v2/users/'"$thisHost"'/recordings?page_size=300&from='$since \
 	     --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".recordings.json
     done < "$hostList"
-    recordingLinks=$tmp/recording.links.tsv
-    msg "Initializing $recordingLinks"
-    :>$recordingLinks
-    downloadLinks=$tmp/download.links.tsv
-    msg "Initializing $downloadLinks"
-    :>$downloadLinks
     jq -s '.' "$tmp"/*recordings.json > "$tmp"/big.json
     while IFS='' read -r thisItem; do
-	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.recording.links.jq "$tmp"/big.json >> "$recordingLinks"
-	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.download.links.jq "$tmp"/big.json >> "$downloadLinks"
+	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.recording.links.jq "$tmp"/big.json >> "$justLinks"
     done < "$gThisList"
-    sort -r "$recordingLinks" > "$sortedLinks"
+    sort -r "$justLinks" > "$sortedLinks"
     gawk -F '\t' -f "$thisDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
     getParticipants
     if [[ $download = "" ]]; then
 	msg "Downloading recordings"
+	downloadLinks=$tmp/download.links
+	msg "Initializing $downloadLinks"
+	:>$downloadLinks
 	downloadRecordings
     fi
-
 }
 getParticipants()
 {
@@ -238,13 +242,15 @@ downloadRecordings()
     recDir=~/Recordings
     mkdir -p "$recDir"
     while IFS='' read -r thisItem; do
+	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.download.links.jq "$tmp"/big.json >> "$downloadLinks"
+    done < "$gThisList"
+    while IFS='' read -r thisItem; do
 	thisFile=$(echo $thisItem | awk  '{printf "%s-%s.MP4\n", $1, $2}')
 	downloadUrl=$(echo $thisItem | awk  '{print $3}')
 	if [ ! -f $recDir/$thisFile ]; then
-	    wget  --content-disposition -v "$downloadUrl" -O<<EOF $recDir/$thisFile
-EOF
+	    wget  --content-disposition -v "$downloadUrl" -O  $recDir/$thisFile
 	fi
-    done    < "$downloadLinks"
+    done < "$downloadLinks"
 }
 doParticipation()
 {
