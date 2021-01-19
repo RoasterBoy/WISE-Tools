@@ -1,0 +1,7 @@
+#!/bin/bash
+# This script fetches the WISE Events Calendar in .ics format
+#
+# Store calendar url in ~/.WISEcal
+wget $URL
+#
+# mung it with sed 
