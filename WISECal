@@ -3,6 +3,7 @@
 #
 # Store calendar url in ~/.WISEcal
 # Get URL from WISE Events Calendar settings, .ics output
-wget $URL
+URL=$(cat ~/.WISEcal)
+wget $URL 
 #
-# mung it with sed 
+# mung it with node.js
