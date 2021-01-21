@@ -158,7 +158,6 @@ msg "Getting events, putting details in $tmp"
 if [ -z ${eventId} ]; then
     getEvents $tagFilter $eventFilter
     if [ $getReg = "true" ]; then
-	msg "This may take a long time."
 	mungFiles
     fi 
 else
