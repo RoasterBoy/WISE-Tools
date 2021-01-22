@@ -1,0 +1,14 @@
+#!/bin/bash
+# this is a test script file
+#
+thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+thisAuth=$(python $thisDir/get.auth.py)
+thisHost="sZbpHXjlQxiQHTLao_-paA"
+#curl -s --location --request GET 'https://api.zoom.us/v2/accounts/7000387255/metrics/meetings/97329534385/participants/qos'      --header 'Authorization: Bearer '"$thisAuth" > big.jso
+curl -s --location --request GET 'https://api.zoom.us/v2/meetings/97329534385/participants/qos'      --header 'Authorization: Bearer '"$thisAuth" 
+
+
+
+#curl -s --location --request GET 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings'  --header 'Authorization: Bearer '"$thisAuth"
+
+
