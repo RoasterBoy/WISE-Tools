@@ -2,14 +2,14 @@
 #
 tmp=~/tmp/wa
 tsvFile=$tmp/stats.tsv
-csvFile=$tmp/stats.csv
+#csvFile=$tmp/stats.csv
 statsFile=~/$(date +"%Y-%m-%d-%H-%M").xlsx
 #
 :>"$csvFile"
 :>"$tsvFile"
 
-get.events.sh -vru
+#get.events.sh -vru
 while IFS='' read -r thisCourse ; do
-    jq '[ .RegistrationDate,.Event.Name] | @tsv' $tmp/$thisCourse.registrations.json) >> $tsvFile
+    jq -r '.[]|[.RegistrationDate,.Event.Name] | @tsv' $tmp/$thisCourse.registrations.json >> $tsvFile
 done < $tmp/events.list
 
