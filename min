@@ -4,3 +4,5 @@ thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 thisAuth=$(python $thisDir/get.auth.py)
 #
 # Stuff goes here.
+
+curl -s --location --request GET 'https://api.zoom.us/v2/accounts/' --header 'Authorization: Bearer '"$thisAuth" -o min.json
