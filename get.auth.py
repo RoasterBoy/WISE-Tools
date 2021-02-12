@@ -25,7 +25,8 @@ def generateToken():
                 # Specify the hashing alg
                 algorithm='HS256'
                 # Convert token to utf-8
-        ).decode('utf-8')
+        )
+        #.decode('utf-8')
         return token
 
 print(generateToken())
