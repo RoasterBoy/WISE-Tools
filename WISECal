@@ -4,7 +4,7 @@
 # Store calendar url in ~/.WISEcal
 # Get URL from WISE Events Calendar settings, .ics output
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-URL=$(cat ~/.WISEcal)
+URL=$(cat ~/.WISECal)
 curl -s $URL -o basic.ics
 #
 now=$(date +%s)
