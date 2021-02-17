@@ -71,11 +71,11 @@ getHosts()
 {
     hostList=$tmp/hosts.list
     :>$hostList
-    echo "Getting hosts"
+    msg "Getting hosts"
     curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
 	 --header 'Authorization: Bearer '"$thisAuth" -o hosts.json
 	jq -r '.users[] | select(.type == 2)  | .id' hosts.json > $hostList
-    echo "Got hosts"
+    msg "Got hosts"
 }
 getMeetings()
 {
