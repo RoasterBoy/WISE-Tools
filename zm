@@ -71,11 +71,11 @@ getHosts()
 {
     hostList=$tmp/hosts.list
     :>$hostList
-    echo "Getting hosts"
+    msg "Getting hosts"
     curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
 	 --header 'Authorization: Bearer '"$thisAuth" -o hosts.json
 	jq -r '.users[] | select(.type == 2)  | .id' hosts.json > $hostList
-    echo "Got hosts"
+    msg "Got hosts"
 }
 getMeetings()
 {
@@ -185,29 +185,38 @@ doMtg()
 }
 doRecordings()
 {
+    recDir=~/Recordings
     msg "Geting recordings for $trackingField"
-    getHosts
-    echo "here"
-    meetingBasics $tracingField
-    if [[ "$gThisList" = "" ]]; then
-	echo "Missing global list $gThisList"
-	exit
-    fi
     since=$(date +%Y-%m-%d -d "30 days ago")
-    while IFS='' read -r thisHost; do
-	curl -s --request GET \
-	     'https://api.zoom.us/v2/users/'"$thisHost"'/recordings?page_size=300&from='$since \
-	     --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".recordings.json
-    done < "$hostList"
-    jq -s '.' "$tmp"/*recordings.json > "$tmp"/big.json
-    while IFS='' read -r thisItem; do
-	msg "Working on this item: $thisItem"
-	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.recording.links.jq "$tmp"/big.json >> "$justLinks"
-    done < "$gThisList"
+    curl -s --request GET \
+	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=50&from=2021-02-01&type=past' \
+	 --header 'authorization: Bearer '"$thisAuth" > this.json
+    jq --raw-output '.meetings[] | select(.tracking_fields[].value == "Course") | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
+
+     while IFS='	' read -r thisTime thisUUID thisTopic ; do
+	 #    echo "This is the UUID $thisUUID"
+	 i=$((i+1))
+	 curl -s --request GET \
+	      --header 'authorization: Bearer '"$thisAuth" \
+	      --url 'https://api.zoom.us/v2/meetings/'"$thisUUID"'/recordings' > $i.json
+	 code=$(jq '.code' $i.json)
+	 if [[ $code == "null" ]]; then 
+	     jq -r ' select(. != .code) | [.topic, (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url)] | @tsv' $i.json > $i.tsv
+	     dlFile=$(awk -F'\t' '{print $4}' $i.tsv)
+	     recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $2)".mp4"}' $i.tsv )
+	     if [ ! -f "$recDir/recFile" ]; then
+		 touch $recDir/$recFile
+		 #	wget -nv $dlFile -O $recDir/$recFile
+		 #	echo "Touching $recDir/recFile"
+	     fi
+	 fi
+     done < this.tsv
+exit
+	jq -r '.meetings[] | select (.tracking_fields != null) |. | select(.tracking_fields[].value == "Course") | [(.start_time|fromdate),.uuid, .topic ]| @tsv'    > $justLinks
     sort -r "$justLinks" > "$sortedLinks"
     gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
     msg "Output file is $HTMLFile"
-    getParticipants
+#    getParticipants
     if [[ $download = "" ]]; then
 	msg "Downloading recordings"
 	downloadLinks=$tmp/download.links
@@ -216,6 +225,28 @@ doRecordings()
 	downloadRecordings
     fi
 }
+newDownloads()
+{
+    recDir=~/Recordings
+#
+# Stuff goes here.
+    while IFS='	' read -r thisTime thisUUID thisTopic ; do
+	#    echo "This is the UUID $thisUUID"
+	i=$((i+1))
+	curl -s --request GET \
+	     --header 'authorization: Bearer '"$thisAuth" \
+	     --url 'https://api.zoom.us/v2/meetings/'"$thisUUID"'/recordings' > $i.json
+	jq -r '[.topic, (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url)] | @tsv' $i.json > $i.tsv
+	dlFile=$(awk -F'\t' '{print $4}' $i.tsv)
+	recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $2)".mp4"}' $i.tsv )
+	if [ ! -f "$recDir/recFile" ]; then
+	msg "Downloading recording file: $recDir/$recFile"
+	    wget -nv $dlFile -O $recDir/$recFile
+	fi
+done < this.tsv
+
+}
+
 getParticipants()
 {
     msg "Getting participants"
