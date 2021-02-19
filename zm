@@ -188,10 +188,12 @@ doRecordings()
     recDir=~/Recordings
     msg "Geting recordings for $trackingField"
     since=$(date +%Y-%m-%d -d "30 days ago")
+    since="2021-02-01"
+
     curl -s --request GET \
-	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=50&from=2021-02-01&type=past' \
+	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=50&from='$since'&type=past' \
 	 --header 'authorization: Bearer '"$thisAuth" > this.json
-    jq --raw-output '.meetings[] | select(.tracking_fields[].value == "Course") | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
+    jq --raw-output '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == "Course") | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
 
      while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 #    echo "This is the UUID $thisUUID"
@@ -201,6 +203,7 @@ doRecordings()
 	      --url 'https://api.zoom.us/v2/meetings/'"$thisUUID"'/recordings' > $i.json
 	 code=$(jq '.code' $i.json)
 	 if [[ $code == "null" ]]; then 
+#	     jq -r '.meetings[] | select (.tracking_fields != null) |. | select(.tracking_fields[].value == "Course") | [(.start_time|fromdate),.uuid, .topic ]| @tsv'  $i.json  >> $justLinks
 	     jq -r ' select(. != .code) | [.topic, (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url)] | @tsv' $i.json > $i.tsv
 	     dlFile=$(awk -F'\t' '{print $4}' $i.tsv)
 	     recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $2)".mp4"}' $i.tsv )
@@ -211,19 +214,17 @@ doRecordings()
 	     fi
 	 fi
      done < this.tsv
-exit
-	jq -r '.meetings[] | select (.tracking_fields != null) |. | select(.tracking_fields[].value == "Course") | [(.start_time|fromdate),.uuid, .topic ]| @tsv'    > $justLinks
-    sort -r "$justLinks" > "$sortedLinks"
-    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
-    msg "Output file is $HTMLFile"
-#    getParticipants
-    if [[ $download = "" ]]; then
-	msg "Downloading recordings"
-	downloadLinks=$tmp/download.links
-	msg "Initializing $downloadLinks"
-	:>$downloadLinks
-	downloadRecordings
-    fi
+     sort -r "$justLinks" > "$sortedLinks"
+     gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
+     msg "Output file is $HTMLFile"
+     #    getParticipants
+#    if [[ $download = "" ]]; then
+#	msg "Downloading recordings"
+#	downloadLinks=$tmp/download.links
+#	msg "Initializing $downloadLinks"
+#	:>$downloadLinks
+#	downloadRecordings
+#   fi
 }
 newDownloads()
 {
