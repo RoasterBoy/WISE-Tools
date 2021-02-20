@@ -1,3 +1,9 @@
+import os
+import platform
+print (os.name)
+print(platform.system())
+print(platform.release())
+
 import jwt
 import requests
 import json
@@ -5,7 +11,6 @@ import sys
 import datetime
 from time import time
 
-import os
 API_KEY = os.environ.get('Zoom_KEY')
 API_SECRET = os.environ.get('Zoom_SECRET')
 # create a function to generate a token using the pyjwt library
@@ -20,7 +25,8 @@ def generateToken():
                 # Specify the hashing alg
                 algorithm='HS256'
                 # Convert token to utf-8
-        ).decode('utf-8')
+        )
+        #.decode('utf-8')
         return token
 
 print(generateToken())
