@@ -1,8 +1,9 @@
 #!/bin/bash
 thisParm="$@"
 thisFile=${thisParm:25:-4}
+
 #iconv -f ISO-8859-1 -t UTF-8//TRANSLIT "$thisParm" -o "$thisFile"
-unzip -q -c "$thisParm" > $thisFile
+#unzip -q -c "$thisParm" > $thisFile
 thisDir=`basename "$PWD"`
 justFile=$(basename "$thisFile")
 justFile=${justFile%.*}
