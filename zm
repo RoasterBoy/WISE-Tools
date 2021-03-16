@@ -223,18 +223,21 @@ doRecordings()
 	 fi
      done < this.tsv
      echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/participants.csv
-     for part in "$tmp"/*participants.json;
-     do
-	 jq -r -f "$thisDir"/get.participant.detail.jq "$thisFile.participants.json" >> "$tmp"/participants.csv
-     done
-     msg "Participants' file is $tmp/partcipants.xlsx"
-
+     rptParticipants
      sort -r "$justLinks" > "$sortedLinks"
      gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
      msg "Output file is $HTMLFile"
-    ssconvert "$tmp"/participants.csv "$tmp"/participants.xlsx    
 }
+rptParticipants()
+{
+    for part in "$tmp"/*participants.json;
+    do
+	jq -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/participants.csv
+    done
+    msg "Participants' file is $tmp/partcipants.xlsx"
+    ssconvert "$tmp"/participants.csv "$tmp"/participants.xlsx    
 
+}
 getParticipants()
 {
     partMtg="$1"

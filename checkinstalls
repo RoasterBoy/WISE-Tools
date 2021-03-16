@@ -1,0 +1,4 @@
+#!/bin/zsh
+type jq
+type datamash
+type ssconvert
