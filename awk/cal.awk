@@ -10,6 +10,7 @@ BEGIN{}
     if (thisMonth + 0 == startMonth + 1)
 	# if we're into a new month, print Read More code
     {
+	startMonth=0
 	print "*|IFNOT:ARCHIVE_PAGE|*&lt;a href=&quot;*|ARCHIVE|*#Events &quot; target=&quot;_blank&quot;&gt;See more upcoming events&lt;/a&gt;*|END:IF|* *|IF:ARCHIVE_PAGE|*" }
     }
     
