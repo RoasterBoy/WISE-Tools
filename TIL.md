@@ -14,7 +14,13 @@ Can't use ```https://api.zoom.us/v2/metrics/meetings``` to retrieve future sessi
 ## 301 Redirects
 We might want to use a 301 redirect from our WordPress hosting site to Wild Apricot so that certain links still work, such as links to managing Zoom meetings, etc. See [Google Developers SEO Guide](https://developers.google.com/search/docs/advanced/crawling/301-redirects)
 More to come
+Options are these:
+* 301 redirect in .htaccess
+* Simple link to target page, typically Courses
+Need to make sure that the back button and other navigation options work well.
 
 ## Pre-filled links in Google Forms
 As nice as it would be to use pre-filled links to let us set the course title and instructor names in evaluations, Forms doesn't let us restrict editing on fields, even in the pre-filled ones. So, there's a chance that the member will edit or choose something unintended.
 Best to stay away from this.
+
+
