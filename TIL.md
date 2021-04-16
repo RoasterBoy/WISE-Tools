@@ -23,9 +23,6 @@ Need to make sure that the back button and other navigation options work well.
 As nice as it would be to use pre-filled links to let us set the course title and instructor names in evaluations, Forms doesn't let us restrict editing on fields, even in the pre-filled ones. So, there's a chance that the member will edit or choose something unintended.
 Best to stay away from this.
 
-<<<<<<< HEAD
-
-=======
 ## Token is expired
 When ```zm``` returns results that look like this, it means that my clock is out of sync. 
 ```
@@ -47,3 +44,7 @@ Premiere Pro
 Open a PP project
 Import video
 Mark in and out
+
+# Facebook Analytics
+FA is going away in June 2021.
+We can only download the past six months of data. (Go to page, click Insights, and then click Download.)
