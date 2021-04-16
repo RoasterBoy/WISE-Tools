@@ -41,3 +41,9 @@ an alternative is to restart WSL.
 ## A tool in search of a problem
 Adobe has released [Adobe PDF Embed API](https://www.adobe.io/apis/documentcloud/dcsdk/pdf-pricing.html), letting us create PDF files. This seems like a good thing, but does it do anything better that Pandoc or [wkhtmltopdf](https://wkhtmltopdf.org/)?
 
+# Premier Pro
+Premiere Pro
+
+Open a PP project
+Import video
+Mark in and out
