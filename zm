@@ -178,7 +178,7 @@ doMtg()
 #	echo "$theseTimes	$thisLink" >> "$justLinks"
     done
 
-    sort -t$'\t' -k8 just.links.tsv > "$sortedLinks"
+    sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
     gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
     sed -i "s/  / /g" $HTMLFile
     msg "HTML Link file is $HTMLFile"
