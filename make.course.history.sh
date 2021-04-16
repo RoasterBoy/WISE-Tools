@@ -65,12 +65,15 @@ mungFiles ()
     # TODO
     # This sed section needs some serious cleanup.
     # 
-    echo "" > allFiles.tsv
+    echo "" > $tmp/allFiles.tsv
+    echo "" > $tmp/regcount.txt
     FILES=$tmp/*details.json
     for f in $FILES
     do
 	#	echo "Working on $f"
-	jq  --raw-output -f $thisDir/makeHistory.jq $f >> allFiles.tsv
+	jq  --raw-output -f $thisDir/makeHistory.jq $f >> $tmp/allFiles.tsv
+	jq '.Details.RegistrationTypes[].CurrentRegistrantsCount' $f >> $tmp/regcount.txt
+	
     done
 	cat allFiles.tsv | ftfy -g >  textfile.txt
 	# Cleanup tags as best we can
