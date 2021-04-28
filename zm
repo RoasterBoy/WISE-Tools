@@ -427,7 +427,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 	    init=false
 	    ;;
 	h )
-	    ### -h Print help and exits
+	    ### -h Print help and exit
 	    help
 	    ;;
 	v )
