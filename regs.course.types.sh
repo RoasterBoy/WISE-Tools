@@ -1,10 +1,5 @@
 #!/bin/bash
 # 
-# This script uses the Wild Apricot API to fetch information about events (courses).
-# 
-# Uses jq
-# See https://stedolan.github.io/jq/
-# 
 # WA_key is our API key 
 # WA_account is our Wild Apricot account number
 # Both are set in .bashrc
@@ -12,7 +7,7 @@
 # API key must be encoded to base64 with the prefix APIKEY:
 # For example, APIKEY:WFVHjqxMsz9k637XCI64bEahTmO7gjv
 #
-tmp=/tmp/wa
+tmp=~/tmp/wa
 getReg=false
 init=false
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -22,12 +17,9 @@ setup ()
 #--------------------------------------------------------- 
 # Set up working directory
 #
-
-    if [ ! -d "$tmp" ]; then
-	mkdir -v $tmp
-#    else
-#	rm $tmp/*
-    fi 
+    mkdir -p "$tmp"
+    touch "$tmp"/tmp.tmp
+    rm -r "${tmp:?}"/*
 #
 } # end setup
 # 
@@ -52,12 +44,15 @@ curl -s --header "Authorization: Bearer $thisAuth"\
 jq '.[] | sort_by(.Name) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
 #
 while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
-#    echo "Got this event $thisEvent"
+    echo "Got this event $thisEvent"
+    # if we're fetching files, we need to rate-limit our requests. Hence, the -retry 6 means that
+    # curl will wait 1^6 seconds or 1 min., 4 secs before starting again.
+    # WA limits us to 30 queries per second.
     if [ ! -f $tmp/$thisEvent-details.json ]; then
-	curl -s --header "Authorization: Bearer $thisAuth"  \
+	curl --retry 6 -v --header "Authorization: Bearer $thisAuth"  \
 	     "https://api.wildapricot.org/v2.1/accounts/$WA_account/events/$thisEvent"\
 	     -o $tmp/$thisEvent-details.json
-	fi
+    fi
 done  < $tmp/events.list
 }
 mungFiles ()
@@ -66,33 +61,29 @@ mungFiles ()
     # This sed section needs some serious cleanup.
     # 
     echo "" > $tmp/allFiles.tsv
-    echo "" > $tmp/regcount.txt
     FILES=$tmp/*details.json
     for f in $FILES
     do
 	#	echo "Working on $f"
-	jq  --raw-output -f $thisDir/makeHistory.jq $f >> $tmp/allFiles.tsv
-	jq '.Details.RegistrationTypes[].CurrentRegistrantsCount' $f >> $tmp/regcount.txt
-	
+	jq  --raw-output -f $thisDir/makeHistory.jq $f >> allFiles.tsv
     done
-	cat allFiles.tsv | ftfy -g >  textfile.txt
+	cat allFiles.tsv | ftfy -g >  $tmp/textfile.txt
 	# Cleanup tags as best we can
 #
-	sed -i'.bak' "/cancelled/d" textfile.txt
-	sed -i'.bak' "/Membership/d" textfile.txt
-	sed -i'.special' "/special/d" textfile.txt
-	sed -i'.annual' "/annual meeting/d" textfile.txt
+	sed -i'.bak' "/cancelled/d" $tmp/textfile.txt
+	sed -i'.bak' "/Membership/d" $tmp/textfile.txt
+	sed -i'.special' "/special/d" $tmp/textfile.txt
+	sed -i'.annual' "/annual meeting/d" $tmp/textfile.txt
 #
-	sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" textfile.txt
-	echo "" > mumble.txt
+	sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" $tmp/textfile.txt
+	echo "" > $tmp/mumble.txt
 	#	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s \t", $i}{printf "%s\n", $1}' textfile.txt >> mumble.txt
-	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' textfile.txt >> mumble.txt
-	sed -i'.bak' '/^$/d' mumble.txt
-	cat mumble.txt  | sort | sed 's/^\(.\)/\U\1/' > course.tags.txt
+	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' $tmp/textfile.txt >> $tmp/mumble.txt
+	sed -i'.bak' '/^$/d' $tmp/mumble.txt
+	cat $tmp/mumble.txt  | sort | sed 's/^\(.\)/\U\1/' > $tmp/course.tags.txt
 	# Fix case for selected tags
-	sed -i'.bak' 's/Cwi/CWI/gi' course.tags.txt
-	#	datamash -s -g 1  collapse 2 < course.tags.txt | sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'| sed G | perl -pe 's|^(.*?)<li>|<h1>$1</h1><li>|g' | perl -pe 's|\(.*?\)||g' > past.wise.courses.html
-	cp $thisDir/course.header.html past.wise.courses.html
+	sed -i'.bak' 's/Cwi/CWI/gi' $tmp/course.tags.txt
+	cp $thisDir/course.header.html $tmp/past.wise.courses.html
 	
 	datamash -s -g 1  collapse 2 < course.tags.txt |
 	    sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'|\
@@ -131,19 +122,8 @@ getHelp() {
     }
 while getopts "uit:hrs:" opt; do
     case ${opt} in
-	u ) # Get Upcoming Events
-	    echo "Getting upcoming events"
-	    filter="?$filter=IsUpcoming%20eq%20true"
-	    ;;
-	r ) # Do we need registrations
-	    getReg=true
-	    ;;
 	i )
 	    init=true
-	    ;;
-	t ) # Tags
-	    tags=$OPTARG
-	    filter="?\$filter=Tags%20in%20%5B$tags%5D"
 	    ;;
 	s ) #StartDate
 	    startDate=$OPTARG
@@ -169,6 +149,7 @@ failure() {
 }
 trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
 start_time="$(date -u +%s)"
+getReg=true
 if [ $init = true ]; then
    setup
    getAuth

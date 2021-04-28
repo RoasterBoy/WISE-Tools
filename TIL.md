@@ -1,5 +1,11 @@
 # TIL - Things I've learned
 
+##  Excel and Academic Years
+Formula to identify the Academic Year of a date cell.
+
+```="AY "&YEAR(DATE(YEAR(X2),MONTH(X2)-5,1))+1```
+Where *X2* is the cell adjacent to this formula
+
 ## Idea for members-only content block
 ```.publicContentView or .memberContentView``` is what you'll need for the CSS selector along with your custom element's class like...
 ```.membersOnly {display:none;}```
@@ -23,9 +29,6 @@ Need to make sure that the back button and other navigation options work well.
 As nice as it would be to use pre-filled links to let us set the course title and instructor names in evaluations, Forms doesn't let us restrict editing on fields, even in the pre-filled ones. So, there's a chance that the member will edit or choose something unintended.
 Best to stay away from this.
 
-<<<<<<< HEAD
-
-=======
 ## Token is expired
 When ```zm``` returns results that look like this, it means that my clock is out of sync. 
 ```
@@ -40,6 +43,13 @@ an alternative is to restart WSL.
 
 ## A tool in search of a problem
 Adobe has released [Adobe PDF Embed API](https://www.adobe.io/apis/documentcloud/dcsdk/pdf-pricing.html), letting us create PDF files. This seems like a good thing, but does it do anything better that Pandoc or [wkhtmltopdf](https://wkhtmltopdf.org/)?
+
+# Premier Pro
+Premiere Pro
+
+Open a PP project
+Import video
+Mark in and out
 
 # Facebook Analytics
 FA is going away in June 2021.
