@@ -54,3 +54,9 @@ Mark in and out
 # Facebook Analytics
 FA is going away in June 2021.
 We can only download the past six months of data. (Go to page, click Insights, and then click Download.)
+
+# Copying from AWS Ubuntu to local Mac
+Until we can get this X server stuff figured out, I've needed to scp the file from the AWS back to my Mac
+```scp -i "kh.pem" user@aws-server-ip-address:tmp/zoom/Mtg.html .```
+Then use pbcopy to get it from my Mac terminal into my clipboard.
+```cat Mtg.html | pbcopy```
