@@ -54,3 +54,7 @@ Mark in and out
 # Facebook Analytics
 FA is going away in June 2021.
 We can only download the past six months of data. (Go to page, click Insights, and then click Download.)
+
+# Copying from AWS Ubuntu to local Mac
+Install XQuartz, mucked around with the ssh server, and now seem to have something working.
+Emacs runs in the Xwindows environment, which has its own configuration. We'll figure this out eventually.
