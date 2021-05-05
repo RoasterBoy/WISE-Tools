@@ -46,6 +46,7 @@ setup ()
 #--------------------------------------------------------- 
 # Set up working directory
 #
+    thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     mkdir -p $tmp
     touch $tmp/tmp.tmp
     rm -r $tmp/*
@@ -58,7 +59,7 @@ setup ()
 }
 getAuth()
 {
-    thisAuth=$(get.auth.sh)
+    thisAuth=$($thisDir/get.auth.sh)
 }
 getEvents ()
 {
