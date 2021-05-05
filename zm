@@ -170,6 +170,11 @@ doMtg()
     
     for file in "$tmp"/*.details.json;
     do
+	### TODO
+	### We need to pick out the sessions that aren't deleted.
+	# This sequence does part of it, but now we need to work it into the main flow. 
+	# .occurrences[] | if (.status == "available") then .start_time else empty end
+	# 
 	thisTopic=$(jq '.topic' "$file")
 	msg "Deep Work on $thisTopic"
 	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
@@ -178,7 +183,7 @@ doMtg()
 #	echo "$theseTimes	$thisLink" >> "$justLinks"
     done
 
-    sort -t$'\t' -k8 just.links.tsv > "$sortedLinks"
+    sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
     gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
     sed -i "s/  / /g" $HTMLFile
     msg "HTML Link file is $HTMLFile"
@@ -427,7 +432,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 	    init=false
 	    ;;
 	h )
-	    ### -h Print help and exits
+	    ### -h Print help and exit
 	    help
 	    ;;
 	v )
