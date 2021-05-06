@@ -2,3 +2,5 @@ jq
 datamash
 gunmeric # includes ssconvert, used to convert csv to xlsx, needs X server to be installed
 csvkit # includes csvstat and csvcut
+# Make python3 be python 
+sudo apt install python-is-python3
