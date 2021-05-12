@@ -1,0 +1,110 @@
+#!/bin/bash
+# This script sends email to course attendees witn a message about their upcoming class, including Zoom link and/or
+# Recording info.
+#
+start_time="$(date -u +%s)"
+tmp=~/tmp/out
+outdir=~/tmp/out
+set -e
+die()
+{
+    if [ "$Verbose" = true ];
+    then
+        msgString=$*
+        echo "%% $msgString"
+    fi
+}
+help()
+{
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*### ?//;T;p' "$thisScript"
+    exit
+    }
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	echo "%% $msgString"
+    fi
+}
+setup ()
+{
+#
+#--------------------------------------------------------- 
+# Set up working directory
+#
+    mkdir -p $tmp
+    touch $tmp/tmp.tmp
+    rm -r $tmp/*
+    mkdir -p $outdir
+    touch $outdir/tmp.tmp
+    rm $outdir/*
+##
+# 
+# end setup
+}
+getAuth()
+{
+    thisAuth=$(get.auth.sh)
+}
+
+#--------------------------------------------------------- 
+#
+#
+getCourseInfo()
+{
+#
+# We'll be getting the course title (Name), startTime (startDate) and RegistrationConfirmationExtraInfo (contains Zoom info) 
+#
+    curl -s --header "Authorization: Bearer $thisAuth"  \
+	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/events/$EventID"\
+	 -o $eventFile
+}
+mungDates()
+{
+    today=$(date '+%s')
+    jq '.Sessions[].StartDate| strptime("%Y-%m-%dT%H:%M:%S%Z") | mktime ' $eventFile | while read d; do
+	echo $d
+	if [[ $d > $today ]]; then
+	    sendDate=$d
+	   break
+	fi	   
+    done
+    
+    # ${dates[@]}
+    
+}
+sendMessage()
+{
+    #
+    thisName=$(jq '.Name' $eventFile)
+    subj="Zoom link for thisEvent"
+    thisBody=$(jq '.Details.RegistrationConfirmationExtraInfo' $eventFile)
+    echo "Course title is $thisName"
+    echo "Reminder text is $thisBody"
+        curl -v  --header "Authorization: Bearer $thisAuth"  \
+	 -H "Content-Type: application/json" \
+ 	 --data '{ 
+	 "Subject": "$subj", 
+	 "Body": "Good stuff",
+	 "ReplyToAddress":"ka.hakkarainen@assumption.edu",    
+	 "ReplyToName":"Karl",
+	 "Recipients":  [{
+	 		"Type": "EventAttendees_All" }],
+			 "EventId": '"$EventId"' 
+			 }'\
+	 "https://api.wildapricot.org/v2.1/rpc/$WA_account/email/sendemail"
+}
+setup
+if [[ -n  "$1" ]] ; then
+    declare -i $EventId
+    EventId=$1
+    eventFile=$tmp/$EventId.details.json
+else
+    die "Missing Event ID"
+fi
+getAuth
+getCourseInfo
+mungDates
+sendMessage
