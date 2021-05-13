@@ -58,7 +58,7 @@ getCourseInfo()
 # We'll be getting the course title (Name), startTime (startDate) and RegistrationConfirmationExtraInfo (contains Zoom info) 
 #
     curl -s --header "Authorization: Bearer $thisAuth"  \
-	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/events/$EventID"\
+	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/events/$EventId"\
 	 -o $eventFile
 }
 mungDates()
@@ -78,23 +78,33 @@ mungDates()
 sendMessage()
 {
     #
-    thisName=$(jq '.Name' $eventFile)
-    subj="Zoom link for thisEvent"
-    thisBody=$(jq '.Details.RegistrationConfirmationExtraInfo' $eventFile)
-    echo "Course title is $thisName"
-    echo "Reminder text is $thisBody"
-        curl -v  --header "Authorization: Bearer $thisAuth"  \
+    thisName=$(jq -r '.Name' $eventFile)
+    body=$(jq -r '.Details.RegistrationConfirmationExtraInfo' $eventFile)
+    subj="Zoom links for $thisName"
+    echo $thisName
+    echo $subj
+    echo $body
+#    exit
+    cat << EOF > $tmp/msg.json
+    {
+		"Subject": "$subj",
+		"Body": "$body",
+			"ReplyToAddress": "ka.hakkarainen@assumption.edu",
+			"ReplyToName": "Karl",
+			"Recipients": [{
+			"Type": "EventAttendees_All"
+				}],
+				"EventId": $EventId }
+
+EOF
+
+thisAuth=$(~/WISE-Tools/get.auth.sh)
+    curl -v  --header "Authorization: Bearer $thisAuth"  \
 	 -H "Content-Type: application/json" \
- 	 --data '{ 
-	 "Subject": "$subj", 
-	 "Body": "Good stuff",
-	 "ReplyToAddress":"ka.hakkarainen@assumption.edu",    
-	 "ReplyToName":"Karl",
-	 "Recipients":  [{
-	 		"Type": "EventAttendees_All" }],
-			 "EventId": '"$EventId"' 
-			 }'\
+ 	 --data @$tmp/msg.json \
 	 "https://api.wildapricot.org/v2.1/rpc/$WA_account/email/sendemail"
+
+
 }
 setup
 if [[ -n  "$1" ]] ; then
@@ -102,7 +112,7 @@ if [[ -n  "$1" ]] ; then
     EventId=$1
     eventFile=$tmp/$EventId.details.json
 else
-    die "Missing Event ID"
+    die "Missing Event Id"
 fi
 getAuth
 getCourseInfo
