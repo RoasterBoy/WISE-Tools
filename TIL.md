@@ -18,7 +18,7 @@ See ```var bonaPage_PageView = { isAnonymousView : false,isMemberView : true,isA
 Can't use ```https://api.zoom.us/v2/metrics/meetings``` to retrieve future sessions. Grr.
 
 ## 301 Redirects
-We might want to use a 301 redirect from our WordPress hosting site to Wild Apricot so that certain links still work, such as links to managing Zoom meetings, etc. See [Google Developers SEO Guide](https://developers.google.com/search/docs/advanced/crawling/301-redirects)
+	>We might want to use a 301 redirect from our WordPress hosting site to Wild Apricot so that certain links still work, such as links to managing Zoom meetings, etc. See [Google Developers SEO Guide](https://developers.google.com/search/docs/advanced/crawling/301-redirects)
 More to come
 Options are these:
 * 301 redirect in .htaccess
@@ -58,3 +58,8 @@ We can only download the past six months of data. (Go to page, click Insights, a
 # Copying from AWS Ubuntu to local Mac
 Install XQuartz, mucked around with the ssh server, and now seem to have something working.
 Emacs runs in the Xwindows environment, which has its own configuration. We'll figure this out eventually.
+
+# Wild Apricot membership fields and attachments
+The plan is to create a script that creates class schedules for each member. To make the schedule available to the member with and without emailing it to them:
+1. Add a membership field in WA. This turns out not to work because you can only enter plain text, no links.
+1. Add an attachment field in WA using HTML. This is ok because clicking the link opens a new tab where the member can view and print the file. This is easier than creating a PDF file.
