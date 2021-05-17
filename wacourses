@@ -1,0 +1,151 @@
+#!/bin/bash
+#
+### wacourses - get Wild Apricot course info
+###
+### Usage:
+###   wacourses [options]
+###
+### Options:
+start_time="$(date -u +%s)"
+tmp=~/tmp/wa
+outdir=~/tmp/out
+eventFilter=""
+tagFilter=""
+
+
+help()
+{
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*### ?//;T;p' "$thisScript"
+    exit
+    }
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	echo "%% $msgString"
+    fi
+}
+setup ()
+{
+#
+#--------------------------------------------------------- 
+# Set up working directory
+#
+    mkdir -p $tmp
+    touch $tmp/tmp.tmp
+    rm -r $tmp/*
+    mkdir -p $outdir
+    touch $outdir/tmp.tmp
+    rm $outdir/*
+##
+# 
+# end setup
+}
+getAuth()
+{
+    thisAuth=$(get.auth.sh)
+}
+getEvents ()
+{
+    case $# in
+	 0) filterString="?idsOnly"
+	    ;;
+	 1) filterString="?idsOnly&\$filter=$1"
+	    ;;
+	 2) filterString="?idsOnly&\$filter=$1 AND $2"
+	    ;;
+	 *)
+	     echo "Bad number of parameters"
+    esac
+curl -s --header "Authorization: Bearer $thisAuth"\
+     'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events'"$filterString" -o $tmp/events.json
+#jq '.[] | sort_by(.Id) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
+jq '.EventsIdentifiers[]' $tmp/events.json > $tmp/events.list 
+
+msg "Events information is in $tmp/events.json"
+}
+
+#--------------------------------------------------------- 
+# Loop through the events and get the details and registrations
+#
+mungFiles ()
+{
+#
+while IFS='' read -r thisCourse || [[ -n "$thisCourse" ]]; do
+#    echo "Got this event $thisCourse"
+    curl -s --header "Authorization: Bearer $thisAuth"\
+ 	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/eventregistrations?eventId=$thisCourse&includeWaitList=true" \
+	 -o $tmp/$thisCourse.registrations.json
+	curl -s --header "Authorization: Bearer $thisAuth"  \
+	     "https://api.wildapricot.org/v2.2/accounts/$WA_account/events/$thisCourse"\
+	     -o $tmp/$thisCourse.details.json
+	# TODO Not sure why this file might not exist
+	# TODO If we stored this stuff in a database, we could just update as needed.
+	if [ -e $tmp/$thisCourse.details.json ]
+	then
+	    thisName=$(jq '.Name' $tmp/$thisCourse.details.json)
+	fi
+	msg "Working on $thisName"
+done  < $tmp/events.list
+}
+makeReports()
+{
+    # Here we create files that contain the registration info for each member.
+    for file in "$tmp"/*registrations.json;
+    do
+	jq --raw-output '.[] | [ (.Contact | .Id, .Name), (.Event | .Id, .StartDate, .Name)] | @tsv'  $file > $file.tsv
+	thisFile=$(basename $file)
+	thisId=${thisFile::7}
+	jq -r '[.Id,.Details.RegistrationConfirmationExtraInfo] | @tsv' $thisId.details.json > $thisId.info.tsv
+	sort -o $file.tsv $file.tsv
+	sort -o $tmp/$thisId.info.tsv $tmp/$thisId.info.tsv
+	join -t $'\t' -1 3 $file.tsv  $tmp/$thisId.info.tsv > $tmp/$thisId.joined.tsv
+	# this gets weirder yet
+	awk -F"\t" -v OFS="," '{F=$2".courses.tsv";} { print $2,$3,$4,$5, $6>>F }'  $tmp/$thisId.joined.tsv 
+    done
+    }
+getSingle()
+{
+curl -s --header "Authorization: Bearer $thisAuth"\
+     'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events/'$eventId -o $tmp/$eventId.json
+}
+
+while getopts "ut:hvr" opt; do
+    case ${opt} in
+	u ) # Get Upcoming Courses
+	    ### -u Get upcoming events
+	    echo "Getting upcoming events"
+	    eventFilter='IsUpcoming%20eq%20true'
+	    ;;
+	t ) # Tags
+	    ### -t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\"
+	    tags=$OPTARG
+	    tagFilter="Tags%20in%20%5B$tags%5D"
+	    ;;
+	v ) #Verbose
+	    ### -v Verbose mode
+	    verbose=true
+	    ;;
+	h) # Print help and exit
+	    ### -h Prints this message
+	    help
+	    ;;
+	?)
+	    help
+	    ;;
+    esac
+done
+# 
+# 
+# 
+setup
+getAuth
+msg "Getting courses, putting details in $tmp"
+getEvents $tagFilter $eventFilter
+mungFiles
+makeReports
+end_time=$(date -u +%s)
+elapsed=$((end_time-start_time))
+msg "Elapsed time: $elapsed seconds"
