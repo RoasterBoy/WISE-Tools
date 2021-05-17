@@ -165,7 +165,6 @@ curl  --location --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao
       --header 'Authorization: Bearer '"$thisAuth" -o $courseFile.json
 done < $inFile
 
->>>>>>> c9f73a52f29b92c3907ec1b39e13b5f781a7da85
 # Now do it
 # For now, we'll use Karl's user ID
 #
@@ -202,5 +201,3 @@ awk -F, '{print $1, $2, $3}' $thisFile
 #python -mjson.tool payload.json
 
   
-=======
->>>>>>> c9f73a52f29b92c3907ec1b39e13b5f781a7da85
