@@ -4,43 +4,5 @@ recDir=~/Recordings
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 thisAuth=$(python $thisDir/get.auth.py)
 tmp=~/tmp/zoom
-#
-# Stuff goes here.
-doRecordings()
-{
-    since=$(date +%Y-%m-%d -d "30 days ago")
-    since="2021-02-01"
-    curl -s --request GET \
-     --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=50&from='$since'&type=past' \
-     --header 'authorization: Bearer '"$thisAuth" > this.json
-     jq --raw-output '.meetings[] | select(.tracking_fields[].value == "Course") | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
-while IFS='	' read -r thisTime thisUUID thisTopic ; do
-    #    echo "This is the UUID $thisUUID"
-    i=$((i+1))
-    curl -s --request GET \
-	 --header 'authorization: Bearer '"$thisAuth" \
-	 --url 'https://api.zoom.us/v2/meetings/'"$thisUUID"'/recordings' > $i.json
-    code=$(jq '.code' $i.json)
-    if [[ $code == "null" ]]; then 
-	jq -r '[.topic, (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url)] | @tsv' $i.json > $i.tsv
-	dlFile=$(awk -F'\t' '{print $4}' $i.tsv)
-	recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $2)".mp4"}' $i.tsv )
-	if [ ! -f "$recDir/recFile" ]; then
-	    touch $recDir/$recFile
-#	wget -nv $dlFile -O $recDir/$recFile
-#	echo "Touching $recDir/recFile"
-	fi
-    fi
-done < this.tsv
-}
-doRecordings
-# Downloaded filename = timestamp + first six characters of topic
-# convert timestamp to readable yyyymmddhhmm
-# select first six characters of topic, replace spaces and periods with dashes
+meetingID=i4nBVQ5cSMCTh43Ohv59BA==
 
-
-
-#.[] | .meetings[] | select(.id == ($ID | tonumber)) | [(.start_time|fromdate), .topic, (.recording_files[] | select(.file_type == "MP4") |  .play_url,  .download_url)] | @tsv
-#
-#tmp=~/tmp/zoom
-#curl 'https://assumptionwise.zoom.us/rec/download/DbQ61lrdzoMlcTmCPJSXDxWFCdCoz1xiwnP3BTPyn0Zafr9vI0NAB00Kxg_AE4iwOZYiFiovMWcXH5hQ.GE3lPmYvqgB5VACM' --remote-name
