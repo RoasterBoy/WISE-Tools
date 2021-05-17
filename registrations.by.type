@@ -85,7 +85,7 @@ mungFiles ()
 	sed -i'.bak' 's/Cwi/CWI/gi' $tmp/course.tags.txt
 	cp $thisDir/course.header.html $tmp/past.wise.courses.html
 	
-	datamash -s -g 1  collapse 2 < course.tags.txt |
+	datamash -s -g 1  collapse 2 < $tmp/course.tags.txt |
 	    sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'|\
 	    sed G |\
 	    perl -pe 's|^(.*?)<li>|</p></div><div class="column" onclick="openTabOPEN$1CLOSE\;" style="background:white;">$1</div><div class="containerTab" style="display:none;background:white;"id="$1"><p>|g' |\

@@ -1,0 +1,107 @@
+/* This is the CSS file that adjusts style and content for WISE's Wild Apricot site.*/
+@media print {
+#id_LmkWGjx,
+#idEventBackContainer,
+#init-add-event-to-calendar-dropdown-4059476 > div,
+div.registrationInfoContainer,
+#FunctionalBlock1_ctl00_eventPageViewBase_ctl00_ctl00_eventRegistrationActions_RegistrationLink_bt,
+WaGadgetFirst , #id_KPJD5Aa,
+#id_LmkWGjx > div,
+#mLayout > div.zonePlace.zoneHeader2,
+#id_Footer1
+,
+#FunctionalBlock1_ctl00_eventPageViewBase_ctl00_ctl00_eventInfoBox_ticketsLeft
+{
+display : none;
+}
+eventInfoBoxValue{
+    width: 100%
+}
+div.boxBodyContentOuterContainer {
+    width:70%;
+    float:inherit;
+}
+
+
+
+#membersTable > thead > tr > th.firstTh,
+#membersTable > thead > tr > th.lastTh.rightAlign.status,
+td:nth-child(3), td:nth-child(4) ,
+#tableItems > tr:nth-child(1) > td:nth-child(2),
+#tableItems > tr:nth-child(1) > td.rightAlign.lastTd,
+#tableItems > tr:nth-child(2) > td:nth-child(2),
+.grayedOut,
+#eventRegistrations > div > div.genericListHeaderContainer
+{
+  display: none
+}
+#membersTable > thead > tr > th:nth-child(2) {
+  display:none;
+}
+#idMemberDetailsTabsContainer ,
+#idTopButtonsContainer
+,
+#tableItems > tr:nth-child(3) > td:nth-child(2)
+
+{display:none;}
+
+#id_swUzzgD {
+display: none;
+}
+
+#mLayout > div.zonePlace.zoneHeader1::after {
+
+font:bold;
+font-size: 24pt;
+height: 50px;
+content:'My Courses';
+}
+#printCourses, #pagerBody {display:none;}
+}
+
+/* End of media section */
+
+
+#membersTable > thead > tr > th.firstTh, th:nth-child(2),th.lastTh {
+display: none;
+}
+
+#membersTable > thead > tr > th.firstTh::after {
+  display: block;
+  content:'Your Courses';
+  
+}
+
+.infoRegistrationIsClosed {
+visibility : hidden;
+}
+.infoRegistrationIsClosed:after {
+float : left;
+content : 'Registration has not started yet.';
+visibility : visible;
+display : block;
+}
+.gift-button {
+border : solid #005195;
+color : white;
+padding : 15px 32px;
+text-align : center;
+text-decoration : none;
+display : inline-block;
+font-size : larger;
+margin : 4px 2px;
+cursor : pointer;
+}
+.WaGadgetLoginForm .loginContainer.loginContainer .loginLink:before {
+position : absolute;
+top : 0;
+left : 0;
+width : 100%;
+height : 100%;
+font : normal 25px/50px 'WA-theme-icons';
+text-align : center;
+text-indent : 0;
+content : url(https://assumptionwise.org/resources/Pictures/Home%20Page%20icons/WA.LogIn.LogOut%20.png);
+}
+
+.levelPrice,.levelRenewal {display:none;}
