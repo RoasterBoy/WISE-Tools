@@ -58,3 +58,6 @@ We can only download the past six months of data. (Go to page, click Insights, a
 # Copying from AWS Ubuntu to local Mac
 Install XQuartz, mucked around with the ssh server, and now seem to have something working.
 Emacs runs in the Xwindows environment, which has its own configuration. We'll figure this out eventually.
+
+# Course Evaluations
+We don't have a current way to download evaluation results from Google Drive to AWS. As a result, the ```evals``` script needs to run on WSL. 
