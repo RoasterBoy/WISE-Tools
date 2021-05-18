@@ -95,6 +95,9 @@ makeReports()
     # Here we create files that contain the registration info for each member.
     for file in "$tmp"/*registrations.json;
     do
+	### TODO Make display name be First name Last name
+	# jq --compact-output --raw-output '.[] | .RegistrationFields[] | (select(.FieldName == "First name" ) | .Value)'
+	
 	jq --raw-output '.[] | [ (.Contact | .Id, .Name), (.Event | .Id, .StartDate, .Name)] | @tsv'  $file > $file.tsv
 	thisFile=$(basename $file)
 	thisId=${thisFile::7}
@@ -104,10 +107,13 @@ makeReports()
 	join -t $'\t' -1 3 $file.tsv  $tmp/$thisId.info.tsv > $tmp/$thisId.joined.tsv
 	# this gets weirder yet
 	awk -F"\t" -v OFS="," '{F=$2".courses.tsv";} { printf "%s\t%s\t%s\t%s\t%s\n",  $2,$3,$4,$5, $6>>F }'  $tmp/$thisId.joined.tsv
-	### TODO
-	# This works for one file. Now need to get the member ID to find the specific course
-	# After that, need to write the member name at the start of the file before we write the course info.
-	awk -F'\t' ' {printf "%s\t%s<br/>\n%s\n", $3,$4,$5,$6;}'  40740972.courses.tsv
+    done
+    for courseFile in "$tmp"/*courses.tsv;
+    do
+	rptFile=$courseFile
+	rptFile=${rptFile/.courses.tsv}.html
+	msg "working on  $rptFile"
+	awk -F'\t' -f ~/WISE-Tools/awk/class.awk $courseFile > $rptFile
     done
     }
 getSingle()
