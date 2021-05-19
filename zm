@@ -36,7 +36,7 @@ die()
 setup()
 {
     rptType=$1
-    thisAuth=$(python $thisDir/get.auth.py)
+    thisAuth=$(python3 $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>"$justLinks"
@@ -119,17 +119,17 @@ meetingBasics()
 	fi
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
-	if [[ $gotItem = "" ]] ; then
+	if [[ $gotTopic = "" ]] ; then
 #	    rm "$tmp"/"$thisMtg".details.json
     	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 	else
-	    msg "Got $gotTopic"
+#	    msg "Got \$gotTopic $gotTopic and \$gotItem $gotItem"
 	    echo "$gotItem" >> "$rptTypeList" 
 	fi
-	
+#	gotItem=""
+#	gotTopic=""
     done < "$tmp"/meetings.list
     gThisList=$rptTypeList
-#    echo "Got these: \$gThisList, $gThisList and \$rptTypeList, $rptTypeList"
 }
 
 doCourses()
@@ -161,6 +161,8 @@ doCourses()
 	sort --version-sort "$justLinks" >> "$sortedLinks"
 	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	msg "Output file is $HTMLFile"
+	push.to.wa.sh -l $HTMLFile
+
     fi
 }
 doMtg()
@@ -170,7 +172,7 @@ doMtg()
     
     if compgen -G "$tmp"/*.details.json;
     then
-	msg "Got some files"
+#	msg "Got some files"
 	for file in "$tmp"/*.details.json;
 	do
 	    ### TODO
