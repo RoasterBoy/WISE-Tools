@@ -42,7 +42,7 @@ setup()
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
-    HTMLFile=$tmp/$rptType.html
+    HTMLFile=$tmp/$rptFile
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
@@ -168,25 +168,34 @@ doMtg()
 
     meetingBasics $tracingField
     
-    for file in "$tmp"/*.details.json;
-    do
-	### TODO
-	### We need to pick out the sessions that aren't deleted.
-	# This sequence does part of it, but now we need to work it into the main flow. 
-	# .occurrences[] | if (.status == "available") then .start_time else empty end
-	# 
-	thisTopic=$(jq '.topic' "$file")
-	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
-	echo "$thisLink	$theseTimes" >> "$justLinks"
-#	echo "$theseTimes	$thisLink" >> "$justLinks"
-    done
+    if compgen -G "$tmp"/*.details.json;
+    then
+	msg "Got some files"
+	for file in "$tmp"/*.details.json;
+	do
+	    ### TODO
+	    ### We need to pick out the sessions that aren't deleted.
+	    # This sequence does part of it, but now we need to work it into the main flow. 
+	    # .occurrences[] | if (.status == "available") then .start_time else empty end
+	    # 
+	    thisTopic=$(jq '.topic' "$file")
+	    msg "Deep Work on $thisTopic"
+	    thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
+	    echo "$thisLink	$theseTimes" >> "$justLinks"
+	    #	echo "$theseTimes	$thisLink" >> "$justLinks"
+	done
+    else
+	echo "No $trackingField meetings scheduled."
+	return 1
+    fi
 
     sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
     gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
     sed -i "s/  / /g" $HTMLFile
     msg "HTML Link file is $HTMLFile"
+    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+    push.to.wa.sh -l $HTMLFile
 }
 doRecordings()
 {
@@ -232,6 +241,8 @@ doRecordings()
      sort -r "$justLinks" > "$sortedLinks"
      gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
      msg "Output file is $HTMLFile"
+     sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+     push.to.wa.sh -l $HTMLFile
 }
 rptParticipants()
 {
@@ -323,24 +334,28 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Course"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=CourseRecordings.html
 		;;
 		event*)
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=EventRecordings.html
 		    ;;
 		committee*)
 		    ###        Committee
 		    trackingField="Committee Meeting"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=CommitteeRecordings.html
 		    ;;
 		training*)
 		    ###        Training
 		    trackingField="Training"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=TrainingRecordings.html				    
 		    ;;
 		* )
 		    echo "%% Invalid tracking field for recordngs : $OPTARG"
@@ -373,12 +388,14 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    rptTitle="Zoom Links for Courses"
 		    awkFile=$awkDir/zoom.courses.awk
 		    cmd=Courses
+		    rptFile=Courses.html
 		;;
 		training)
 		    ###        Committees
 		    trackingField="Training"
 		    rptTitle="Zoom Links for Training Sessions"
 		    cmd=Mtg
+		    rptFile=Training.html
 		    awkFile=$awkDir/zoom.events.awk
 		    rptType=Training
 		    ;;
@@ -387,6 +404,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Committee Meeting"
 		    rptTitle="Zoom Links for Committee Meetings"
 		    cmd=Mtg
+		    rptFile=Committee.html
 		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=Committees
 		    ;;
@@ -396,6 +414,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    rptTitle="Zoom Links for Events"
 		    awkFile=$awkDir/zoom.events.awk
 		    cmd=Mtg
+		    rptFile=Events.html
 		    ;;
 		club*)
 		    ###        Clubs
@@ -404,6 +423,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    cmd=Mtg
 		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=Clubs
+		    rptFile=Clubs.html
 		    ;;
 		sig*)
 		    ###        SIG
@@ -412,6 +432,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    cmd=Mtg
 		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=SIG
+		    rptFile=SIGs.html
 		    ;;
 		group*)
 		    ###        Group
@@ -420,6 +441,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    awkFile=$awkDir/zoom.clubs.awk
 		    cmd=Mtg
 		    rptType=group
+		    rptFile=Groups.html
 		    ;;		
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
