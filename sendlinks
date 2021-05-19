@@ -80,10 +80,14 @@ sendMessage()
     #
     thisName=$(jq -r '.Name' $eventFile)
     body=$(jq -r '.Details.RegistrationConfirmationExtraInfo' $eventFile)
-    subj="Zoom links for $thisName"
     echo $thisName
     echo $subj
     echo $body
+    sendTime=$(date +%s)
+    sendTime=$((sendTime + 3600))
+    msg "Send time is  $sendTime"
+    scheduledDate=$(date -d "@$sendTime" +"%Y-%m-%dT%H:%M:%S%Z")
+    subj="Zoom links for $scheduledDate"
 #    exit
     cat << EOF > $tmp/msg.json
     {
@@ -94,10 +98,12 @@ sendMessage()
 			"Recipients": [{
 			"Type": "EventAttendees_All"
 				}],
-				"EventId": $EventId }
+				"EventId": $EventId,
+				"isScheduled": true,
+				"ScheduledDate":"$ScheduledDate" }
 
 EOF
-
+#exit
 thisAuth=$(~/WISE-Tools/get.auth.sh)
     curl -v  --header "Authorization: Bearer $thisAuth"  \
 	 -H "Content-Type: application/json" \
