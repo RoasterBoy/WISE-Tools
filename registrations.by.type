@@ -66,6 +66,8 @@ mungFiles ()
     do
 	#	echo "Working on $f"
 	jq  --raw-output -f $thisDir/makeHistory.jq $f >> allFiles.tsv
+	regCount=$(jq '.ConfirmedRegistrationsCount' $f)
+	echo "We have \$regCount of $regCount"
     done
 	cat allFiles.tsv | ftfy -g >  $tmp/textfile.txt
 	# Cleanup tags as best we can
@@ -84,7 +86,7 @@ mungFiles ()
 	# Fix case for selected tags
 	sed -i'.bak' 's/Cwi/CWI/gi' $tmp/course.tags.txt
 	cp $thisDir/course.header.html $tmp/past.wise.courses.html
-	
+exit	
 	datamash -s -g 1  collapse 2 < $tmp/course.tags.txt |
 	    sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'|\
 	    sed G |\
