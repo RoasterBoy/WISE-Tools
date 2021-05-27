@@ -56,7 +56,7 @@ setup()
 }
 init()
 {
-    tmp=~/tmp/zoom
+    tmp=~/tmp/$start_time
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
 	return
@@ -244,7 +244,7 @@ doRecordings()
      gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
      msg "Output file is $HTMLFile"
      sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
-     push.to.wa.sh -l $HTMLFile
+     push.to.wa.sh -t "$tmp" -l $HTMLFile
 }
 rptParticipants()
 {

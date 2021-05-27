@@ -1,12 +1,8 @@
 #!/bin/bash
 # This script creates a cadaver.put file, allowing us to put a file on our Wild Apricot server.
-#
-# $1 is the file or files. Must quote filespecs that have wildcards.
-# $2 is the location, relative to /resources. We don't, at this time, have a way to confirm that the
-# location exists or is writeable. Use with caution; this could end badly.
-#
 # login information is in .netrc
 #
+cd $tmp
 createPutFile()
 {
     [[ -z "$thisDir" ]] && { echo "No target directory. Exiting..." ; exit 1; }
@@ -33,7 +29,7 @@ getHelp()
     echo "-w  Others go to Documents/website"
     echo "-c  Put files in Documents/class.assistants"
 }
-while getopts "b:l:w:c:h" opt; do
+while getopts "b:l:t:w:c:h" opt; do
     case ${opt} in
 	b) # Blogs
 	    thisFile=$OPTARG
@@ -46,6 +42,9 @@ while getopts "b:l:w:c:h" opt; do
 	l) # Links
 	    thisFile=$OPTARG
 	    thisDir="Links"
+	    ;;
+	t) # tmp directory
+	    tmp=$OPTARG
 	    ;;
 	w) # Other stuff
 	    thisFile=$OPTARG
