@@ -6,6 +6,7 @@
 ###   wacourses [options]
 ###
 ### Options:
+set -e 
 start_time="$(date -u +%s)"
 tmp=~/tmp/wa
 outdir=~/tmp/out
@@ -101,15 +102,16 @@ makeReports()
 	jq --raw-output '.[] | [ (.Contact | .Id, .Name), (.Event | .Id, .StartDate, .Name)] | @tsv'  $file > $file.tsv
 	thisFile=$(basename $file)
 	thisId=${thisFile::7}
-	jq -r '[.Id,.Details.RegistrationConfirmationExtraInfo] | @tsv' $thisId.details.json > $thisId.info.tsv
+	jq -r '[.Id,.Details.RegistrationConfirmationExtraInfo] | @tsv' $tmp/$thisId.details.json > $tmp/$thisId.info.tsv
 	sort -o $file.tsv $file.tsv
 	sort -o $tmp/$thisId.info.tsv $tmp/$thisId.info.tsv
 	join -t $'\t' -1 3 $file.tsv  $tmp/$thisId.info.tsv > $tmp/$thisId.joined.tsv
 	# this gets weirder yet
-	awk -F"\t" -v OFS="," '{F=$2".courses.tsv";} { printf "%s\t%s\t%s\t%s\t%s\n",  $2,$3,$4,$5, $6>>F }'  $tmp/$thisId.joined.tsv
+	awk -F"\t" -v OFS="," -v TMP="$tmp/" '{F=TMP$2".courses.tsv";} { printf "%s\t%s\t%s\t%s\t%s\n",  $2,$3,$4,$5, $6>>F }'  $tmp/$thisId.joined.tsv
     done
     for courseFile in "$tmp"/*courses.tsv;
     do
+	msg "Got $courseFile"
 	rptFile=$courseFile
 	rptFile=${rptFile/.courses.tsv}.html
 	msg "working on  $rptFile"
@@ -130,6 +132,7 @@ while getopts "ut:hvr" opt; do
 	    eventFilter='IsUpcoming%20eq%20true'
 	    ;;
 	t ) # Tags
+	    ### the -t option is broken now
 	    ### -t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\"
 	    tags=$OPTARG
 	    tagFilter="Tags%20in%20%5B$tags%5D"
