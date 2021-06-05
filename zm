@@ -182,7 +182,11 @@ doMtg()
 	    # 
 	    thisTopic=$(jq '.topic' "$file")
 	    msg "Deep Work on $thisTopic"
-	    thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	    if [[ $trackingField == "SIG" ]]; then
+		thisLink=$(jq -r -f "$thisDir"/make.registration.links.jq "$file")
+	    else
+		thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	    fi
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
 	    #	echo "$theseTimes	$thisLink" >> "$justLinks"
@@ -314,7 +318,6 @@ while getopts "n:dr:Pt:nShvV" opt; do
     thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     awkDir=$thisDir/awk
     jqDir=$thisDir/jq
-    #
     case ${opt} in
 	d )
 	    ### -d Download recordings
@@ -469,6 +472,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 	    ;;
     esac
 done
+#
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
