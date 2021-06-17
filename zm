@@ -205,7 +205,7 @@ doMtg()
 }
 doRecordings()
 {
-    recDir=~/Recordings
+    recDir=/archives/Recordings
     msg "Geting recordings for $trackingField"
     since=$(date +%Y-%m-%d -d "30 days ago")
 #    since="2021-02-01"
@@ -224,7 +224,8 @@ doRecordings()
 	 if [[ $code == "null" ]]; then 
 	     jq -r ' select(. != .code) | [ (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url),.topic] | @tsv' $i.json > $i.tsv
 	     dlFile=$(awk -F'\t' '{print $3}' $i.tsv)
-	     recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $2)".mp4"}' $i.tsv )
+#	     recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $i.tsv )
+	     recFile=$(gawk -F'\t' 'match($4,/([A-D,S][0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $i.tsv)
 	     cat $i.tsv >> $justLinks
 
 	     getParticipants $thisUUID "$recFile"
@@ -233,10 +234,12 @@ doRecordings()
 	     # For now, it's commented out.
 	     #   if [[ $download ]]; then
 
-	     if [ ! -f "$recDir/recFile" ]; then
+	     if [ -e "$recDir/$recFile" ]; then
+		 msg "No need to download $recDir/$recFile"
+		 else
 		 #		 touch $recDir/$recFile
-		 msg "Would be doing downloads here."
-		 #	wget -nv $dlFile -O $recDir/$recFile
+		 msg "Downloading $recDir/$recFile here."
+		 	wget -nv $dlFile -O $recDir/$recFile
 		 #	echo "Touching $recDir/recFile"
 	     fi
 	     #   fi
