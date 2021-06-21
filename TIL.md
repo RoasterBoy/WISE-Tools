@@ -60,4 +60,10 @@ Install XQuartz, mucked around with the ssh server, and now seem to have somethi
 Emacs runs in the Xwindows environment, which has its own configuration. We'll figure this out eventually.
 
 # Course Evaluations
-We don't have a current way to download evaluation results from Google Drive to AWS. As a result, the ```evals``` script needs to run on WSL. 
+We don't have a current way to download evaluation results from Google Drive to AWS. As a result, the ```evals``` script needs to run on WSL.
+
+# Stuff about JSON
+Just some notes to remember
+```jq '.topic, (.recording_files[] | select(.file_type == "MP4") |\
+      [.recording_start, .play_url, .download_url] )' 8.json | jq -s '.'
+```
