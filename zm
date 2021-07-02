@@ -46,7 +46,8 @@ setup()
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
-	echo "<h2>$rptTitle</h2>" > "$HTMLFile"
+	echo "<style>body {font-family: Ubuntu, Arial, sans-serif;}</style>" > $HTMLFile
+	echo "<h2>$rptTitle</h2>" >> "$HTMLFile"
 	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
 	if [ -n "$thisNote" ]; then
 	    msg "Got a note"
