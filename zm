@@ -123,9 +123,12 @@ meetingBasics()
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotTopic = "" ]] ; then
-	    #rm "$tmp"/"$thisMtg".details.json
-	    # Leaving next line for debugging purposes
-    	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+	    if [[ $keepDetail = true ]]; then
+		# Leaving next line for debugging purposes
+    		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+	    else
+		rm "$tmp"/"$thisMtg".details.json
+	    fi
 	else
 	    echo "$gotItem" >> "$rptTypeList" 
 	fi
@@ -317,6 +320,10 @@ while getopts "n:dr:Pt:nShvV" opt; do
     awkDir=$thisDir/awk
     jqDir=$thisDir/jq
     case ${opt} in
+	K )
+	    ### -K keep temporary json meeting files (for debugging)
+	    keepDetails=true
+	    ;;
 	d )
 	    ### -d Download recordings
 	    ### TODO: make this only valid with -r
