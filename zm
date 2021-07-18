@@ -311,7 +311,7 @@ doParticipation()
 }
 
 
-while getopts "n:dr:Pt:nShvV" opt; do
+while getopts "Kn:dr:Pt:nShvV" opt; do
     shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
