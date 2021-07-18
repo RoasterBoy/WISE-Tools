@@ -12,7 +12,7 @@
 # API key must be encoded to base64 with the prefix APIKEY:
 # For example, APIKEY:WFVHjqxMsz9k637XCI64bEahTmO7gjv
 #
-tmp=/tmp/wa
+tmp=~/tmp/wa
 getReg=false
 init=false
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -21,14 +21,17 @@ setup ()
 #
 #--------------------------------------------------------- 
 # Set up working directory
-#
-
-    if [ ! -d "$tmp" ]; then
-	mkdir -v $tmp
-#    else
-#	rm $tmp/*
-    fi 
-#
+    #
+    tmp=~/tmp/wa
+    if [[ "$init" = false ]] ; then
+        msg "Skipping initialization"
+        return
+    fi
+    msg "Doing initialization"
+    mkdir -p "$tmp"
+    touch "$tmp"/tmp.tmp
+    rm -r "${tmp:?}"/*
+    
 } # end setup
 # 
 getAuth()
@@ -52,12 +55,13 @@ curl -s --header "Authorization: Bearer $thisAuth"\
 jq '.[] | sort_by(.Name) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
 #
 while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
-#    echo "Got this event $thisEvent"
+    # WA has a limit of the number of calls per second
+    # curl will wait 1^6 seconds or 1 min. 4 secs before starting again.
     if [ ! -f $tmp/$thisEvent-details.json ]; then
-	curl -s --header "Authorization: Bearer $thisAuth"  \
-	     "https://api.wildapricot.org/v2.1/accounts/$WA_account/events/$thisEvent"\
+	curl -s --retry 6 --header "Authorization: Bearer $thisAuth"  \
+	     https://api.wildapricot.org/v2.1/accounts/$WA_account/events/$thisEvent \
 	     -o $tmp/$thisEvent-details.json
-	fi
+    fi
 done  < $tmp/events.list
 }
 mungFiles ()
@@ -75,38 +79,37 @@ mungFiles ()
 	jq '.Details.RegistrationTypes[].CurrentRegistrantsCount' $f >> $tmp/regcount.txt
 	
     done
-	cat allFiles.tsv | ftfy -g >  textfile.txt
+	cat $tmp/allFiles.tsv | ftfy -g >  $tmp/textfile.txt
 	# Cleanup tags as best we can
 #
-	sed -i'.bak' "/cancelled/d" textfile.txt
-	sed -i'.bak' "/Membership/d" textfile.txt
-	sed -i'.special' "/special/d" textfile.txt
-	sed -i'.annual' "/annual meeting/d" textfile.txt
+	sed -i'.bak' "/cancelled/d" $tmp/textfile.txt
+	sed -i'.bak' "/Membership/d" $tmp/textfile.txt
+	sed -i'.special' "/special/d" $tmp/textfile.txt
+	sed -i'.annual' "/annual meeting/d" $tmp/textfile.txt
 #
-	sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" textfile.txt
-	echo "" > mumble.txt
-	#	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s \t", $i}{printf "%s\n", $1}' textfile.txt >> mumble.txt
-	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' textfile.txt >> mumble.txt
-	sed -i'.bak' '/^$/d' mumble.txt
-	cat mumble.txt  | sort | sed 's/^\(.\)/\U\1/' > course.tags.txt
+	sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" $tmp/textfile.txt
+	echo "" > $tmp/mumble.txt
+	#	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s \t", $i}{printf "%s\n", $1}' $tmp/textfile.txt >> $tmp/mumble.txt
+	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' $tmp/textfile.txt >> $tmp/mumble.txt
+	sed -i'.bak' '/^$/d' $tmp/mumble.txt
+	cat $tmp/mumble.txt  | sort | sed 's/^\(.\)/\U\1/' > $tmp/course.tags.txt
 	# Fix case for selected tags
-	sed -i'.bak' 's/Cwi/CWI/gi' course.tags.txt
-	#	datamash -s -g 1  collapse 2 < course.tags.txt | sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'| sed G | perl -pe 's|^(.*?)<li>|<h1>$1</h1><li>|g' | perl -pe 's|\(.*?\)||g' > past.wise.courses.html
-	cp $thisDir/course.header.html past.wise.courses.html
+	sed -i'.bak' 's/Cwi/CWI/gi' $tmp/course.tags.txt
+	cp $thisDir/course.header.html $tmp/past.wise.courses.html
 	
-	datamash -s -g 1  collapse 2 < course.tags.txt |
+	datamash -s -g 1  collapse 2 < $tmp/course.tags.txt |
 	    sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'|\
 	    sed G |\
 	    perl -pe 's|^(.*?)<li>|</p></div><div class="column" onclick="openTabOPEN$1CLOSE\;" style="background:white;">$1</div><div class="containerTab" style="display:none;background:white;"id="$1"><p>|g' |\
-	    perl -pe 's|\(.*?\)||g' >> past.wise.courses.html
-	sed -i'.bak' "s/OPEN\(.*\)CLOSE/\(\'\1\'\)/g" past.wise.courses.html
+	    perl -pe 's|\(.*?\)||g' >> $tmp/past.wise.courses.html
+	sed -i'.bak' "s/OPEN\(.*\)CLOSE/\(\'\1\'\)/g" $tmp/past.wise.courses.html
 #	echo "Is this trouble?"
-	sed -i'.bak2' 's/<\/i>,/<\/i> /g' past.wise.courses.html
-	sed -i'.burp' 's/\<li>/<\/p><p>/g' past.wise.courses.html
-	sed -i'.bak' 's/[A-D,S][[:digit:]]\+[[:space:]]\?[-,.][[:space:]]\?//g' past.wise.courses.html
+	sed -i'.bak2' 's/<\/i>,/<\/i> /g' $tmp/past.wise.courses.html
+	sed -i'.burp' 's/\<li>/<\/p><p>/g' $tmp/past.wise.courses.html
+	sed -i'.bak' 's/[A-D,S][[:digit:]]\+[[:space:]]\?[-,.][[:space:]]\?//g' $tmp/past.wise.courses.html
 	thisDate=$(date  +"%B %d, %Y %-I:%m %p")
-	echo "<p>Updated: $thisDate" >> past.wise.courses.html
-	cat $thisDir/course.footer.html >> past.wise.courses.html
+	echo "<p>Updated: $thisDate" >> $tmp/past.wise.courses.html
+	cat $thisDir/course.footer.html >> $tmp/past.wise.courses.html
 }
 
 msg()
