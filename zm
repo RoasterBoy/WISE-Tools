@@ -266,7 +266,7 @@ getParticipants()
 }
 rptParticipants()
 {
-     echo "File,User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/participants.csv
+     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/participants.csv
      for part in "$tmp"/*participants.json;
      do
 	 jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/participants.csv
