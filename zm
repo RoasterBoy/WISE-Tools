@@ -197,7 +197,6 @@ doMtg()
 	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
 	sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
-    else
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
 #	return 1
     fi
@@ -247,11 +246,16 @@ doRecordings()
 	     fi
 	 fi
      done < this.tsv
-     sort -r "$justLinks" > "$sortedLinks"
-     gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
-     msg "Output file is $HTMLFile"
-     sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
-     push.to.wa.sh -t "$tmp" -l $HTMLFile
+     echo "what size is $justLinks"
+	if [ -s $justLinks ]; then 
+	    sort -r "$justLinks" > "$sortedLinks"
+	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
+	   else
+	       echo "<p>No recordings for $trackingField at this time" >> $HTMLFile
+	fi
+	    msg "Output file is $HTMLFile"
+	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+	    push.to.wa.sh -t "$tmp" -l $HTMLFile
 }
 getParticipants()
 {
