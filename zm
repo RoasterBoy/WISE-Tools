@@ -164,6 +164,9 @@ doCourses()
     else
 	sort --version-sort "$justLinks" >> "$sortedLinks"
 	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
+
+	# Make sure we handle entities properly, editing in place
+	recode utf8..ascii  "$HTMLFile"
 	msg "Output file is $HTMLFile"
 	push.to.wa.sh -l $HTMLFile
 
