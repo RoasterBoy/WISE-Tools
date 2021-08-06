@@ -46,8 +46,8 @@ setup()
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
-	echo "<style>body {font-family: Ubuntu, Arial, sans-serif;}</style>" > $HTMLFile
-	echo "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name%20.png'/>" >> $HTMLFile
+	echo "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
+	echo "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
 	echo "<h2>$rptTitle</h2>" >> "$HTMLFile"
 	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
 	if [ -n "$thisNote" ]; then
