@@ -88,10 +88,20 @@ while IFS='' read -r thisCourse || [[ -n "$thisCourse" ]]; do
 	then
 	    thisName=$(jq '.Name' $tmp/$thisCourse.details.json)
 	fi
-	msg "Working on $thisName"
+	if [[ $thisName = "" ]]; then
+	    exit
+	else
+	    
+	    msg "Working on $thisName"
+	fi
 done  < $tmp/events.list
 }
-makeReports()
+doList()
+{
+curl -s --header "Authorization: Bearer $thisAuth" 'https://api.wildapricot.org/v2.2/accounts/204432/Events?%24filter=IsUpcoming%20eq%20true' | jq -r '.Events[].Name' | sort -V > $tmp/courses.txt
+#
+    }
+doHTML()
 {
     # Here we create files that contain the registration info for each member.
     for file in "$tmp"/*registrations.json;
@@ -124,12 +134,18 @@ curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events/'$eventId -o $tmp/$eventId.json
 }
 
-while getopts "ut:hvr" opt; do
+while getopts "lut:hvr" opt; do
     case ${opt} in
+	l )
+	### -l List courses
+	# Just list course titles
+	    rptType=list
+	;;
 	u ) # Get Upcoming Courses
 	    ### -u Get upcoming events
 	    echo "Getting upcoming events"
 	    eventFilter='IsUpcoming%20eq%20true'
+	    rptType=HTML
 	    ;;
 	t ) # Tags
 	    ### the -t option is broken now
@@ -156,9 +172,13 @@ done
 setup
 getAuth
 msg "Getting courses, putting details in $tmp"
-getEvents $tagFilter $eventFilter
-mungFiles
-makeReports
+if [[ $rptType = "list" ]]; then
+    doList
+else
+    getEvents $tagFilter $eventFilter
+    mungFiles
+    do$rptType
+fi
 end_time=$(date -u +%s)
 elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"
