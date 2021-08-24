@@ -1,7 +1,9 @@
 #!/bin/bash
-# 
+# Creates list of past WISE courses
 # This script uses the Wild Apricot API to fetch information about events (courses).
-# 
+# Because of limits on WA API (30 requests/minute), we have to use curl -retry 6 when we use the -i option.
+# This means that building from scratch can take quite a while. Be patient. 
+#
 # Uses jq
 # See https://stedolan.github.io/jq/
 # 
