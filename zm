@@ -189,11 +189,14 @@ doMtg()
 	    # 
 	    thisTopic=$(jq '.topic' "$file")
 	    msg "Deep Work on $thisTopic"
-	    if [[ $trackingField == "SIG" ]]; then
-		thisLink=$(jq -r -f "$thisDir"/make.registration.links.jq "$file")
-	    else
-		thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
+	    thisURL=$(jq '.registration_url' $file)
+	    if [  $thisURL = "null" ]; then
+		thisURL=$(jq '.join_url' $file)
 	    fi
+	    echo $thisURL 
+	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
+#	    else
+#		thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
 	done
@@ -201,6 +204,7 @@ doMtg()
 	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
 	sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+	else
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
 #	return 1
     fi
