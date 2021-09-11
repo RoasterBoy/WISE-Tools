@@ -191,7 +191,7 @@ doMtg()
 	    msg "Deep Work on $thisTopic"
 	    thisURL=$(jq '.registration_url' $file)
 	    if [  $thisURL = "null" ]; then
-		thisURL=$(jq '.join_url' $file)
+		thisURL=$(jq -r '.join_url' $file)
 	    fi
 	    echo $thisURL 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
@@ -211,6 +211,14 @@ doMtg()
     msg "HTML Link file is $HTMLFile"
     push.to.wa.sh -l $HTMLFile
 }
+dblEncode()
+{
+    echo $1
+    that=$(urlencode $1)
+    echo $that
+    other=$(urlencode $that)
+    echo $other
+}
 doRecordings()
 {
     recDir=/archives/Recordings
@@ -224,9 +232,10 @@ doRecordings()
     jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
      while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 i=$((i+1))
+	 dblEncode $thisUUID
 	 curl -s --request GET \
 	      --header 'authorization: Bearer '"$thisAuth" \
-	      --url 'https://api.zoom.us/v2/meetings/'"$thisUUID"'/recordings' > $tmp/$i.json
+	       --url 'https://api.zoom.us/v2/meetings/'"$other"'/recordings' > $tmp/$i.json
 	 code=$(jq '.code' $tmp/$i.json)
 	 if [[ $code == "null" ]]; then 
 	     jq -r ' select(. != .code) | [ (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url),.topic] | @tsv' $tmp/$i.json > $tmp/$i.tsv
