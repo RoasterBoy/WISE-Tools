@@ -151,7 +151,7 @@ doCourses()
 	    theseTimes=""
 	else
 	    jqFile="$thisDir"/make.course.links.jq
-	    theseTimes=$(jq -r '.occurrences[].start_time' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	    theseTimes=$(jq -r '.occurrences[] | if .status == "deleted" then  empty else .start_time  end' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
 	thisLink=$(jq -r -f "$jqFile" "$file")
 	echo "$thisLink	$theseTimes" >> "$justLinks"
@@ -182,11 +182,6 @@ doMtg()
     then
 	for file in "$tmp"/*.details.json;
 	do
-	    ### TODO
-	    ### We need to pick out the sessions that aren't deleted.
-	    # This sequence does part of it, but now we need to work it into the main flow. 
-	    # .occurrences[] | if (.status == "available") then .start_time else empty end
-	    # 
 	    thisTopic=$(jq '.topic' "$file")
 	    msg "Deep Work on $thisTopic"
 	    thisURL=$(jq '.registration_url' $file)
@@ -195,8 +190,6 @@ doMtg()
 	    fi
 	    echo $thisURL 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
-#	    else
-#		thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
 	done
@@ -206,7 +199,6 @@ doMtg()
 	sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
 	else
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
-#	return 1
     fi
     msg "HTML Link file is $HTMLFile"
     push.to.wa.sh -l $HTMLFile
