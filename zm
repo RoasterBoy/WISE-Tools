@@ -49,6 +49,7 @@ setup()
 	echo "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
 	echo "<style>body, p {margin-left: 30px;}</style>" >> $HTMLFile
 	echo "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
+	echo "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
 	echo "<h2>$rptTitle</h2>" >> "$HTMLFile"
 	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
 	if [ -n "$thisNote" ]; then
