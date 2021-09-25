@@ -47,7 +47,7 @@ setup()
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
 	echo "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
-	echo "<style>body, p {margin-left: 30px;}</style>" >> $HTMLFile
+	echo "<style>body {margin-left: 30px;}</style>" >> $HTMLFile
 	echo "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
 	echo "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
 	echo "<h2>$rptTitle</h2>" >> "$HTMLFile"
@@ -280,13 +280,13 @@ getParticipants()
 }
 rptParticipants()
 {
-     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/participants.csv
+     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/$start_time.participants.csv
      for part in "$tmp"/*participants.json;
      do
-	 jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/participants.csv
+	 jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/$start_time.participants.csv
      done
-     msg "Participants' file is $tmp/partcipants.xlsx"
-     ssconvert "$tmp"/participants.csv "$tmp"/participants.xlsx    
+     msg "Participants' file is $tmp/$start_time.partcipants.xlsx"
+     ssconvert "$tmp"/$start_time.participants.csv "$tmp"/$start_time.participants.xlsx    
 }
 downloadRecordings()
 {
