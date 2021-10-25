@@ -381,6 +381,13 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
 		    cmd=Recordings
 		    rptFile=TrainingRecordings.html				    
 		    ;;
+		sig**)
+		    ###        SIGs
+		    trackingField="SIG"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=SIGRecordings.html				    
+		    ;;
 		* )
 		    echo "%% Invalid tracking field for recordngs : $OPTARG"
 		    help
