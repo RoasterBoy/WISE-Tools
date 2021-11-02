@@ -123,7 +123,8 @@ meetingBasics()
 		 -o "$tmp"/"$thisMtg".details.json 
 	fi
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
-	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+	# TODO need to fix encoding of topics and other stuff
+	gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotTopic = "" ]] ; then
 	    if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
