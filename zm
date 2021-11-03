@@ -123,7 +123,6 @@ meetingBasics()
 		 -o "$tmp"/"$thisMtg".details.json 
 	fi
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
-	# TODO need to fix encoding of topics and other stuff
 	gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotTopic = "" ]] ; then
 	    if [[ $keepDetail = true ]]; then
@@ -270,28 +269,29 @@ doRecordings()
 }
 getParticipants()
 {
+    partFile=$other.participants
     partMtg="$1"
     local thisFile="$2"
     msg "Getting participants for $partMtg"
     curl -s --location --request GET \
 	 'https://api.zoom.us/v2/metrics/meetings/'"$partMtg"'/participants?type=past' \
 	 --header 'Authorization: Bearer '"$thisAuth" \
-	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o "$tmp"/"$thisFile".participants.json
+	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o "$tmp"/"$partFile".json
 
 }
 rptParticipants()
 {
-     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/$start_time.participants.csv
+     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/"$partFile".csv
      for part in "$tmp"/*participants.json;
      do
-	 jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/$start_time.participants.csv
+	 jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/"$partFile".csv
      done
-     msg "Participants' file is $tmp/$start_time.partcipants.xlsx"
-     ssconvert "$tmp"/$start_time.participants.csv "$tmp"/$start_time.participants.xlsx    
+     msg "Participants' file is $tmp/"$partFile".xlsx"
+     ssconvert "$tmp"/"$partFile".csv "$tmp"/"$partFile".xlsx
 }
 downloadRecordings()
 {
-    ### TODO Put the recordings in a shared space (Dropbox/WISE/Recordings/"
+    ### TODO Put the recordings in a shared space (Dropbox/WISE/
     recDir=~/Recordings
     mkdir -p "$recDir"
     while IFS='' read -r thisItem; do
