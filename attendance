@@ -1,11 +1,11 @@
 #!/bin/bash
-trap "rm -vf this.* hosts.json cadaver.put " EXIT
+#trap "rm -vf this.* hosts.json cadaver.put " EXIT
 set -e
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 thisAuth=$(python3 $thisDir/get.auth.py)
 tmp=~/tmp/meetings
 mkdir -p "$tmp"
-trackingField=course
+trackingField=Course
 keepDetail=true
 msg()
 {
@@ -68,6 +68,35 @@ meetingBasics()
     done < "$tmp"/meetings.list
     gThisList=$rptTypeList
 }
+getInstance()
+{
+    thisInstance=$1
+    curl -s --location --request GET \
+	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/instances\
+	 --header 'Authorization: Bearer '"$thisAuth" -o moo.json
+    array=$(jq -r '[.meetings[].uuid] | @tsv'  moo.json)
+    #	 -o "$tmp"/"$thisInstance".details.json
+    dblEncode <(for f in "${array[@]}" ; do echo "$other" ; done)
 
-getMeetings
-meetingBasics
+}
+dblEncode()
+{
+    echo $1
+    that=$(urlencode $1)
+    echo $that
+    other=$(urlencode $that)
+    echo $other
+}
+
+fetchInstance()
+{
+    thisInstance=$1
+    echo "Got $thisInstance"
+    curl -s --location --request GET \
+	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/participants\
+	 --header 'Authorization: Bearer '"$thisAuth" -o $thisInstance.json
+}
+
+#getMeetings
+#meetingBasics
+getInstance $1
