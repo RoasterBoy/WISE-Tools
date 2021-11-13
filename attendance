@@ -6,7 +6,7 @@ thisAuth=$(python3 $thisDir/get.auth.py)
 tmp=~/tmp/meetings
 mkdir -p "$tmp"
 trackingField=Course
-keepDetail=true
+keepDetail=false
 msg()
 {
     if [  "$verbose" = true ];
@@ -54,8 +54,8 @@ meetingBasics()
 	     --header 'Authorization: Bearer '"$thisAuth"\
 	     -o "$tmp"/"$thisMtg".details.json 
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
-	gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
-	if [[ $gotTopic = "" ]] ; then
+	if [[ $gotItem = "" ]];
+	   then 
 	    if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
     		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
@@ -63,21 +63,24 @@ meetingBasics()
 		rm "$tmp"/"$thisMtg".details.json
 	    fi
 	else
-	    echo "$gotItem" >> "$rptTypeList" 
+	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+	    getInstances "$gotItem"
 	fi
     done < "$tmp"/meetings.list
     gThisList=$rptTypeList
 }
-getInstance()
+getInstances()
 {
     thisInstance=$1
     curl -s --location --request GET \
 	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/instances\
-	 --header 'Authorization: Bearer '"$thisAuth" -o moo.json
-    array=$(jq -r '[.meetings[].uuid] | @tsv'  moo.json)
-    #	 -o "$tmp"/"$thisInstance".details.json
-    dblEncode <(for f in "${array[@]}" ; do echo "$other" ; done)
-
+	 --header 'Authorization: Bearer '"$thisAuth" -o $thisInstance.instance.json
+    #    array=$(jq -r '[.meetings[].uuid] | @tsv'  $thisInstance.instance.json)
+    thisUUIDTime=$(jq '.meetings[] | [.uuid, .start_time] | @sh' $thisInstance.instance.json)
+    #    edblEncode $thisUUID
+    #    dblEncode <(for f in "${array[@]}" ; do echo "$other" ; done)
+    exit
+    fetchInstance $other
 }
 dblEncode()
 {
@@ -93,10 +96,18 @@ fetchInstance()
     thisInstance=$1
     echo "Got $thisInstance"
     curl -s --location --request GET \
-	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/participants\
-	 --header 'Authorization: Bearer '"$thisAuth" -o $thisInstance.json
+	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/participants?page_size=100\
+	 --header 'Authorization: Bearer '"$thisAuth" -o $tmp/$thisInstance.json
+    thisCount=$(jq --raw-output '[.participants[].id] | unique | length' $tmp/$thisInstance.json)
+    echo $thisCount
+    exit
 }
 
-#getMeetings
-#meetingBasics
-getInstance $1
+mung()
+{
+    ### TODO
+    ### Build a string that includes course title, meeting date, and meeting count
+    echo ""
+}
+getMeetings
+meetingBasics
