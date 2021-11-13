@@ -71,24 +71,27 @@ meetingBasics()
 }
 getInstances()
 {
+
     thisInstance=$1
     curl -s --location --request GET \
 	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/instances\
 	 --header 'Authorization: Bearer '"$thisAuth" -o $thisInstance.instance.json
     #    array=$(jq -r '[.meetings[].uuid] | @tsv'  $thisInstance.instance.json)
-    thisUUIDTime=$(jq '.meetings[] | [.uuid, .start_time] | @sh' $thisInstance.instance.json)
-    #    edblEncode $thisUUID
-    #    dblEncode <(for f in "${array[@]}" ; do echo "$other" ; done)
+    jq -r '.meetings[] | [.uuid, .start_time] | @csv' $thisInstance.instance.json > $thisInstance.csv
+    ### TODO need to loop through the contents of this .csv file
+    awk -F "\"*,"\" '{print $1}' $thisInstance.csv | dblEncode | echo "Got  $other"
     exit
-    fetchInstance $other
+#    fetchInstance $other
 }
 dblEncode()
 {
-    echo $1
-    that=$(urlencode $1)
+    while read -r data; do
+    echo $data
+    that=$(urlencode $data)
     echo $that
     other=$(urlencode $that)
     echo $other
+     done
 }
 
 fetchInstance()
@@ -109,5 +112,6 @@ mung()
     ### Build a string that includes course title, meeting date, and meeting count
     echo ""
 }
+export -f dblEncode
 getMeetings
 meetingBasics
