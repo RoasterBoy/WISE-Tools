@@ -5,3 +5,5 @@ csvkit # includes csvstat and csvcut
 ical2json (needs npm for installation)
 # Make python3 be python 
 sudo apt install python-is-python3
+cadaver
+recode
