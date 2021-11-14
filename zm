@@ -248,6 +248,8 @@ doRecordings()
 	     rptParticipants "$recFile"
 	     # Doing downloads. 
 
+	     ### TODO check if there's enough space before downlading. Exit with message and ?email
+	     ### TODO Backup archives to OneDrive, Dropbox
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
@@ -269,6 +271,9 @@ doRecordings()
 }
 getParticipants()
 {
+    #
+    ### TODO Needs fixing. See particiants script
+    #
     partFile=$other.participants
     partMtg="$1"
     local thisFile="$2"
