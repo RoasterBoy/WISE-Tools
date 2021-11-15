@@ -272,7 +272,7 @@ doRecordings()
 getParticipants()
 {
     #
-    ### TODO Needs fixing. See particiants script
+    ### TODO Needs fixing. See participants  script
     #
     partFile=$other.participants
     partMtg="$1"
