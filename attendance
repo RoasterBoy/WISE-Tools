@@ -5,6 +5,8 @@ thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 thisAuth=$(python3 $thisDir/get.auth.py)
 tmp=~/tmp/meetings
 mkdir -p "$tmp"
+touch $tmp/moo
+rm $tmp/*
 trackingField=Course
 keepDetail=false
 msg()
@@ -49,38 +51,44 @@ meetingBasics()
     getMeetings
     showAll="?show_previous_occurrences=true"
     while IFS='' read -r thisMtg ; do
-	curl -s --location --request GET \
+	curl -s  --request GET \
 	     'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
 	     --header 'Authorization: Bearer '"$thisAuth"\
-	     -o "$tmp"/"$thisMtg".details.json 
+	     -o "$tmp"/"$thisMtg".details.json
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	if [[ $gotItem = "" ]];
-	   then 
-	    if [[ $keepDetail = true ]]; then
-		# Leaving next line for debugging purposes
-    		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
-	    else
-		rm "$tmp"/"$thisMtg".details.json
-	    fi
+	then 
+	    # Leaving next line for debugging purposes
+   	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 	else
-	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
-	    getInstances "$gotItem"
+#	recurCount=$(jq '.recurrence.repeat_interval' "$tmp"/"$thisMtg".details.json)
+	mtgCount=$(jq '.occurrences|length' "$tmp"/"$thisMtg".details.json)
+	    echo "Got a \$mtgCount $mtgCount  in "$tmp"/"$thisMtg".details.json"
+	    if [[ $mtgCount > 1 ]]; then
+		gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+		echo "\$gotTopic is $gotTopic"
+		getInstances "$gotItem"
+	    else
+		echo "Would be deleteing "$tmp"/"$thisMtg".details.json"
+		#	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+		#	    rm -v "$tmp"/"$thisMtg".details.json
+	    fi
 	fi
-    done < "$tmp"/meetings.list
+    done < "$tmp"/all.meetings.list
     gThisList=$rptTypeList
 }
 getInstances()
 {
 
     thisInstance=$1
-    curl -s --location --request GET \
+    curl -s  --request GET \
 	 'https://api.zoom.us/v2/past_meetings/'"$thisInstance"/instances\
 	 --header 'Authorization: Bearer '"$thisAuth" -o $thisInstance.instance.json
     #    array=$(jq -r '[.meetings[].uuid] | @tsv'  $thisInstance.instance.json)
     jq -r '.meetings[] | [.uuid, .start_time] | @csv' $thisInstance.instance.json > $thisInstance.csv
-    ### TODO need to loop through the contents of this .csv file
-    awk -F "\"*,"\" '{print $1}' $thisInstance.csv | dblEncode | echo "Got  $other"
-    exit
+#    sed "s/^/"$gotTopic"/g" $thisInstance.csv
+    ### TODO need to loop through the contents of this .csv file to double encode UUIDs
+#    awk -F "\"*,"\" '{print $1}' $thisInstance.csv 
 #    fetchInstance $other
 }
 dblEncode()
