@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# This file shows various ways of converting ISO 8601 date strings into human-friendly form.
+#
+# jq
+#
+# awk
+#
+# bash
+#
+# python
