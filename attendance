@@ -10,11 +10,9 @@ rm $tmp/*
 trackingField=Course
 keepDetail=false
 UUIDFile="$tmp/UUID.list"
-encodedFile=$tmp/encoded.list
 mungFile=$tmp/mung.list
 :>$mungFile
 :>$UUIDFile
-:>$encodedFile
 msg()
 {
     if [  "$verbose" = true ];
@@ -50,10 +48,6 @@ getMeetings()
 }
 meetingBasics()
 {
-    msg "Working on \$trackingField $trackingField"
-    msg "Initializing $cmd.list"
-    rptTypeList=$tmp/this.list
-    :>"$rptTypeList"
     getMeetings
     showAll="?show_previous_occurrences=true"
     while IFS='' read -r thisMtg ; do
@@ -67,58 +61,54 @@ meetingBasics()
 	    # Leaving next line for debugging purposes
    	    rm "$tmp"/"$thisMtg".details.json  #"$tmp"/"$thisMtg".nope.json
 	else
-#	recurCount=$(jq '.recurrence.repeat_interval' "$tmp"/"$thisMtg".details.json)
 	mtgCount=$(jq '.occurrences|length' "$tmp"/"$thisMtg".details.json)
-	    echo "Got a \$mtgCount $mtgCount  in "$tmp"/"$thisMtg".details.json"
+	    msg "Got a \$mtgCount $mtgCount  in "$tmp"/"$thisMtg".details.json"
 	    if [[ $mtgCount > 1 ]]; then
 		gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+		gotReg=$(jq -r '.tracking_fields[] | select(.field == "Registration") | .value' "$tmp"/"$thisMtg".details.json)
 		msg "\$gotTopic is $gotTopic"
-		getInstances "$gotItem"
+		msg "\$gotReg is $gotReg"
+		getInstances "$gotItem" "$gotTopic" "$gotReg"
 	    else
-		#	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 		rm -v "$tmp"/"$thisMtg".details.json
 	    fi
 	fi
     done < "$tmp"/all.meetings.list
-#    fetchInstance
-    gThisList=$rptTypeList
 }
 getInstances()
 {
     thisID=$1
+    thisTopic=$2
+    thisReg=$3
     curl -s  --request GET \
 	 'https://api.zoom.us/v2/past_meetings/'"$thisID"/instances\
 	 --header 'Authorization: Bearer '"$thisAuth" -o $thisID.occurrences.json
-    jq -r '.meetings[] | [.uuid, .start_time] | @tsv' $thisID.occurrences.json >> $UUIDFile
+    #
+    jq -r '.meetings[] | [.uuid, .start_time] | @tsv' $thisID.occurrences.json > $UUIDFile
+    #
     while IFS=$'\t' read -r gotUUID gotStartTime; do
-	echo $gotUUID
+	msg $gotUUID
 	dblEncode $gotUUID
 	fetchInstance $other
-	#	printf "%s\t%s\t%s\t%s\n" "$gotTopic" $gotStartTime $gotUUID $other >> $mungFile
-	if [[ $thisCount > 4 ]]; then
-	    printf "%s\t%s\t%i\n" $gotStartTime "$gotTopic"  $thisCount >> $mungFile
+	if [[ $thisCount > 2 ]]; then
+	    printf "%s\t%s\t%i\t%i\n" "$gotTopic" $gotStartTime   $thisCount $thisReg >> $mungFile
+#	    sed -i -e 's/\"//g' $mungFile
 	fi
 	done < $UUIDFile
 }
 dblEncode()
 {
     local this=$1
-    that=$(urlencode $this)
-    other=$(urlencode $that)
-    echo $other
-
+    other=$(urlencode $(urlencode $this))
 }
 
 fetchInstance()
 {
     local thisItem=$1
-#    while IFS=$'\t' read -r gotThing gotTime ; do
-#	dblEncode $gotThing
-	curl -s --location --request GET \
-	     'https://api.zoom.us/v2/past_meetings/'"$thisItem"/participants?page_size=100\
-	     --header 'Authorization: Bearer '"$thisAuth" -o $tmp/$other.participants.json
-	thisCount=$(jq -r '[.participants[].id] | unique | length' $tmp/$thisItem.participants.json)
-#    done < $UUIDFile
+    curl -s --location --request GET \
+	 'https://api.zoom.us/v2/past_meetings/'"$thisItem"/participants?page_size=100\
+	 --header 'Authorization: Bearer '"$thisAuth" -o $tmp/$other.participants.json
+    thisCount=$(jq -r '[.participants[].id] | unique | length' $tmp/$thisItem.participants.json)
 }
 
 mung()
@@ -127,6 +117,9 @@ mung()
     ### Build a string that includes course title, meeting date, and meeting count
     echo ""
 }
-export -f dblEncode
+#export -f dblEncode
 getMeetings
 meetingBasics
+
+
+
