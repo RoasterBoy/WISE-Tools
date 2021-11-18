@@ -18,35 +18,23 @@
 ###   get.events.sh [options]
 ###
 ### Options:
-start_time="$(date -u +%s)"
-tmp=~/tmp/wa
-outdir=~/tmp/out
-getReg=false
-eventFilter=""
-tagFilter=""
-
-
 help()
 {
     thisScript=$(which "$0")
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
     }
-msg()
-{
-    if [  "$verbose" = true ];
-    then
-	msgString=$*
-	echo "%% $msgString"
-    fi
-}
+tmp=~/tmp/wa
+outdir=~/tmp/out
+getReg=false
+eventFilter=""
+tagFilter=""
 setup ()
 {
 #
 #--------------------------------------------------------- 
 # Set up working directory
 #
-    thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     mkdir -p $tmp
     touch $tmp/tmp.tmp
     rm -r $tmp/*
@@ -59,7 +47,7 @@ setup ()
 }
 getAuth()
 {
-    thisAuth=$($thisDir/get.auth.sh)
+    thisAuth=$(get.auth.sh)
 }
 getEvents ()
 {
@@ -68,7 +56,9 @@ getEvents ()
 	    ;;
 	 1) filterString="?\$filter=$1"
 	    ;;
-	 2) filterString="?\$filter=$1 AND $2"
+	 2) filterString="?\$filter=$1%20AND%20$2"
+	    ;;
+	 3) filterString="?\$filter=$1%20AND%20$2AND%20$3"
 	    ;;
 	 *)
 	     echo "Bad number of parameters"
@@ -76,34 +66,45 @@ getEvents ()
 curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events'"$filterString" -o $tmp/events.json
 jq '.[] | sort_by(.Id) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
-msg "Events information is in $tmp/events.json"
+
+if [[ $getCount = true ]] ;then
+    getCount
+fi
 }
 
 #--------------------------------------------------------- 
 # Loop through the events and get the details and registrations
 #
+getCount()
+{
+    msg "Getting Count"
+    jq -r '.Events[] | [.Name, .ConfirmedRegistrationsCount] | @tsv' $tmp/events.json > $tmp/events.tsv
+    sort -o $tmp/events.tsv $tmp/events.tsv
+    sed -i -e 's/  / /g' $tmp/events.tsv
+    msg "Count file is $tmp/events.tsv"
+}
 mungFiles ()
 {
 #
 while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
 #    echo "Got this event $thisEvent"
     if  $getReg ; then
-	if [ ! -f $tmp/$thisEvent.registrations.json ]; then
+	if [ ! -f $tmp/$thisEvent-registrations.json ]; then
 	    curl -s --header "Authorization: Bearer $thisAuth"\
  		 "https://api.wildapricot.org/v2.2/accounts/$WA_account/eventregistrations?eventId=$thisEvent&includeWaitList=true" \
-		 -o $tmp/$thisEvent.registrations.json
+		 -o $tmp/$thisEvent-registrations.json
 	fi
-#	jq --raw-output '.[] | [.Event.Id,.Contact.Id, .OnWaitlist] | @tsv' $tmp/$thisEvent.registrations.json > $outdir/$thisEvent-registration.tsv
+#	jq --raw-output '.[] | [.Event.Id,.Contact.Id, .OnWaitlist] | @tsv' $tmp/$thisEvent-registrations.json > $outdir/$thisEvent-registration.tsv
     fi
-    if [ ! -f $tmp/$thisEvent.details.json ]; then
+    if [ ! -f $tmp/$thisEvent-details.json ]; then
 	curl -s --header "Authorization: Bearer $thisAuth"  \
 	     "https://api.wildapricot.org/v2.2/accounts/$WA_account/events/$thisEvent"\
-	     -o $tmp/$thisEvent.details.json
+	     -o $tmp/$thisEvent-details.json
 	# TODO Not sure why this file might not exist
 	# TODO If we stored this stuff in a database, we could just update as needed.
-	if [ -e $tmp/$thisEvent.details.json ]
+	if [ -e $tmp/$thisEvent-details.json ]
 	then
-	    thisName=$(jq '.Name' $tmp/$thisEvent.details.json)
+	    thisName=$(jq '.Name' $tmp/$thisEvent-details.json)
 	fi
 	msg "Working on $thisName"
 	fi
@@ -115,26 +116,43 @@ curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events/'$eventId -o $tmp/$eventId.json
 }
 
-while getopts "ue:s:t:hvr" opt; do
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+#       echo "Verbose is $verbose"                                                                                                  
+        thisString=$@
+        echo "%% $thisString"
+    fi
+}
+while getopts "che:s:t:uvr" opt; do
     case ${opt} in
+	c ) #
+	    ### -c Get registration count with event id and name
+	    getCount=true
+	    ;;
 	e ) #get this one event
 	    ### -e Get single event eventId
 	    eventId=$OPTARG
+	    ;;
+	r ) # Do we need registrations
+	    ### -r Get registration. Default is 'no'.
+	    getReg=true
+	    ;;
+	s )
+	    ### -s Start date for retrieving events
+	    today=$(date +%Y-%m-%d)
+	    sinceFilter="StartDate%20gt%20$OPTARG%20AND%20EndDate%20lt%20$today"
+	    ;;	    
+	t ) # Tags
+	    ### -t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\"
+	    tags=$OPTARG
+	    tagFilter="Tags%20in%20%5B$tags%5D"
 	    ;;
 	u ) # Get Upcoming Events
 	    ### -u Get upcoming events
 	    echo "Getting upcoming events"
 	    eventFilter='IsUpcoming%20eq%20true'
-	    ;;
-
-	r ) # Do we need registrations
-	    ### -r Get registration. Default is 'no'.
-	    getReg=true
-	    ;;
-	t ) # Tags
-	    ### -t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\"
-	    tags=$OPTARG
-	    tagFilter="Tags%20in%20%5B$tags%5D"
 	    ;;
 	v ) #Verbose
 	    ### -v Verbose mode
@@ -157,13 +175,11 @@ setup
 getAuth
 msg "Getting events, putting details in $tmp"
 if [ -z ${eventId} ]; then
-    getEvents $tagFilter $eventFilter
+    getEvents $tagFilter $eventFilter $sinceFilter
     if [ $getReg = "true" ]; then
+	msg "This may take a long time."
 	mungFiles
     fi 
 else
     getSingle $eventId
 fi
-end_time=$(date -u +%s)
-elapsed=$((end_time-start_time))
-msg "Elapsed time: $elapsed seconds"
