@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+echo "TODO Filter for meetings within date range (start/end, start/new, all/now)"
+beginDate=$(date -+%s)
+#
 #trap "rm -vf this.* hosts.json cadaver.put " EXIT
 set -e
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
