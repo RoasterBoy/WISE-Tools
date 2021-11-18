@@ -1,8 +1,7 @@
 #!/bin/bash
 #
 echo "TODO Filter for meetings within date range (start/end, start/new, all/now)"
-beginDate=$(date -+%s)
-#
+beginDate=$(date +%s)
 #trap "rm -vf this.* hosts.json cadaver.put " EXIT
 set -e
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -11,6 +10,9 @@ tmp=~/tmp/meetings
 mkdir -p "$tmp"
 touch $tmp/moo
 rm $tmp/*
+### Set default value to this date next year. We might need to rethink this.
+beginDate=$(date -d "Next year" +%s)
+today=$(date +%s)
 trackingField=Course
 keepDetail=false
 UUIDFile="$tmp/UUID.list"
@@ -47,8 +49,11 @@ getMeetings()
 	     'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
 	     --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
     done < $hostList
-    jq --slurp ' .[] | .meetings[].id' "$tmp"/*info.json  > "$tmp"/all.meetings.list
+    echo $beginDate
+    jq --slurp '.' $tmp/*info.json > big.json
+    jq  --arg BEGIN $beginDate --arg TODAY $today '.[].meetings[] | if (.start_time | fromdate < $BEGIN) and ((.start_time | fromdate) <  $TODAY )    then . else empty end | .id' "$tmp"/big.json  > "$tmp"/all.meetings.list
     sort --unique > "$tmp"/meetings.list < "$tmp"/all.meetings.list
+    exit
 }
 meetingBasics()
 {
@@ -86,9 +91,9 @@ getInstances()
     thisReg=$3
     curl -s  --request GET \
 	 'https://api.zoom.us/v2/past_meetings/'"$thisID"/instances\
-	 --header 'Authorization: Bearer '"$thisAuth" -o $thisID.occurrences.json
+	 --header 'Authorization: Bearer '"$thisAuth" -o $tmp/$thisID.occurrences.json
     #
-    jq -r '.meetings[] | [.uuid, .start_time] | @tsv' $thisID.occurrences.json > $UUIDFile
+    jq -r '.meetings[] | [.uuid, .start_time] | @tsv' $tmp/$thisID.occurrences.json > $UUIDFile
     #
     while IFS=$'\t' read -r gotUUID gotStartTime; do
 	msg $gotUUID
@@ -122,8 +127,26 @@ mung()
     echo ""
 }
 #export -f dblEncode
+while getopts "hs:v" opt; do
+    case ${opt} in
+	s )
+	    ### -s Start date for retrieving events
+	    today=$(date +%Y-%m-%d)
+	    beginDate=$(date -d "$OPTARG" +%s)
+	    ;;	    
+	v ) #Verbose
+	    ### -v Verbose mode
+	    verbose=true
+	    ;;
+	h) # Print help and exit
+	    ### -h Prints this message
+	    help
+	    ;;
+	?)
+	    help
+	    ;;
+	
+    esac
+done
 getMeetings
 meetingBasics
-
-
-
