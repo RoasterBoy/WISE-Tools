@@ -12,12 +12,11 @@ touch $tmp/moo
 rm $tmp/*
 ### Set default value to this date next year. We might need to rethink this.
 beginDate=$(date -d "Next year" +%s)
-today=$(date +%s)
+now=$(date +%s)
 trackingField=Course
 keepDetail=false
 UUIDFile="$tmp/UUID.list"
 mungFile=$tmp/mung.list
-:>$mungFile
 :>$UUIDFile
 msg()
 {
@@ -49,11 +48,11 @@ getMeetings()
 	     'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
 	     --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
     done < $hostList
-    echo $beginDate
-    jq --slurp '.' $tmp/*info.json > big.json
-    jq  --arg BEGIN $beginDate --arg TODAY $today '.[].meetings[] | if (.start_time | fromdate < $BEGIN) and ((.start_time | fromdate) <  $TODAY )    then . else empty end | .id' "$tmp"/big.json  > "$tmp"/all.meetings.list
+    jq --slurp '.' $tmp/*info.json > $tmp/big.json
+    touch $tmp/all.meetings.list
+    #    jq --arg BEGIN $beginDate --arg TODAY $now '.[].meetings[] | select (.start_time | fromdate > ($BEGIN | tonumber)) |  select ((.start_time | fromdate) < ($TODAY | tonumber))  | .id' $tmp/big.json  > $tmp/all.meetings.list
+    jq --arg BEGIN $beginDate --arg TODAY $now '.[].meetings[] | select (.start_time | fromdate > ($BEGIN | tonumber)) | .id' $tmp/big.json  > $tmp/all.meetings.list
     sort --unique > "$tmp"/meetings.list < "$tmp"/all.meetings.list
-    exit
 }
 meetingBasics()
 {
@@ -72,7 +71,7 @@ meetingBasics()
 	else
 	mtgCount=$(jq '.occurrences|length' "$tmp"/"$thisMtg".details.json)
 	    msg "Got a \$mtgCount $mtgCount  in "$tmp"/"$thisMtg".details.json"
-	    if [[ $mtgCount > 1 ]]; then
+	    if [[ $mtgCount -ge 3 ]]; then
 		gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 		gotReg=$(jq -r '.tracking_fields[] | select(.field == "Registration") | .value' "$tmp"/"$thisMtg".details.json)
 		msg "\$gotTopic is $gotTopic"
@@ -93,15 +92,16 @@ getInstances()
 	 'https://api.zoom.us/v2/past_meetings/'"$thisID"/instances\
 	 --header 'Authorization: Bearer '"$thisAuth" -o $tmp/$thisID.occurrences.json
     #
-    jq -r '.meetings[] | [.uuid, .start_time] | @tsv' $tmp/$thisID.occurrences.json > $UUIDFile
+    jq -r '.meetings[] | [.uuid, (.start_time|fromdate)] | @tsv' $tmp/$thisID.occurrences.json > $UUIDFile
     #
     while IFS=$'\t' read -r gotUUID gotStartTime; do
 	msg $gotUUID
 	dblEncode $gotUUID
 	fetchInstance $other
-	if [[ $thisCount > 2 ]]; then
+	if [[ $thisCount -gt 4 ]]; then
+	    echo "Writing to $mungFile"
 	    printf "%s\t%s\t%i\t%i\n" "$gotTopic" $gotStartTime   $thisCount $thisReg >> $mungFile
-#	    sed -i -e 's/\"//g' $mungFile
+	    sed -i -e 's/\"//g' $mungFile
 	fi
 	done < $UUIDFile
 }
@@ -150,3 +150,6 @@ while getopts "hs:v" opt; do
 done
 getMeetings
 meetingBasics
+#awk -F '\t' '{printf "%s\t %s\t %d`\t %.2f%\n"  $1, $2,$3, $4 ,(int (v$3)/int($4)*100 )}' $mungFile > attendance.tsv
+awk -F '\t' '{printf "%s\t%s\t%.2f%%\t%d\t%d\n",  $1, $2 ,($3/$4)*100, $3, $4 }' /home/ubuntu/tmp/meetings/mung.list > attendance.tsv
+sed -i '1s/^/Course	Date	Percentage	Attendance	Registration\n/' attendance.tsv
