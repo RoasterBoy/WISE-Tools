@@ -153,3 +153,4 @@ meetingBasics
 #awk -F '\t' '{printf "%s\t %s\t %d`\t %.2f%\n"  $1, $2,$3, $4 ,(int (v$3)/int($4)*100 )}' $mungFile > attendance.tsv
 awk -F '\t' '{printf "%s\t%s\t%.2f%%\t%d\t%d\n",  $1, $2 ,($3/$4)*100, $3, $4 }' /home/ubuntu/tmp/meetings/mung.list > attendance.tsv
 sed -i '1s/^/Course	Date	Percentage	Attendance	Registration\n/' attendance.tsv
+ssconvert attendance.tsv attendance.xlsx
