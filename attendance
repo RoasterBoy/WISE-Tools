@@ -2,7 +2,7 @@
 #
 echo "TODO Filter for meetings within date range (start/end, start/new, all/now)"
 beginDate=$(date +%s)
-#trap "rm -vf this.* hosts.json cadaver.put " EXIT
+trap "rm -f this.* hosts.json cadaver.put " EXIT
 set -e
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 thisAuth=$(python3 $thisDir/get.auth.py)
@@ -120,20 +120,8 @@ fetchInstance()
     thisCount=$(jq -r '[.participants[].name] | unique | length' $tmp/$thisItem.participants.json)
 }
 
-mung()
-{
-    ### TODO
-    ### Build a string that includes course title, meeting date, and meeting count
-    echo ""
-}
-#export -f dblEncode
-while getopts "hs:v" opt; do
+while getopts "hv" opt; do
     case ${opt} in
-	s )
-	    ### -s Start date for retrieving events
-	    today=$(date +%Y-%m-%d)
-	    beginDate=$(date -d "$OPTARG" +%s)
-	    ;;	    
 	v ) #Verbose
 	    ### -v Verbose mode
 	    verbose=true
@@ -145,10 +133,23 @@ while getopts "hs:v" opt; do
 	?)
 	    help
 	    ;;
-	
     esac
 done
-getMeetings
+if [ -n $1 ];
+then
+    #
+    ### $1 is the start date for selection
+    ### $2 is the end date. If empty, then end date is \"today\"
+    #
+    beginDate=$(date -d "$1" +%s)
+    if [ -n "$2" ];
+    then
+	endDate=$2
+    else
+	endDate=$(date +%Y-%m-%d)
+    fi
+fi
+    getMeetings
 meetingBasics
 sort -k1,2 -o mung.list  mung.list
 awk -F '\t' '{printf "%s\t%s\t%.2f%%\t%d\t%d\n",  $1,  strftime("%c",$2) ,($3/$4)*100, $3, $4 }' /home/ubuntu/tmp/meetings/mung.list > attendance.tsv
