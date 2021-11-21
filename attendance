@@ -99,7 +99,7 @@ getInstances()
 	dblEncode $gotUUID
 	fetchInstance $other
 	if [[ $thisCount -gt 4 ]]; then
-	    echo "Writing to $mungFile"
+	    msg "Writing to $mungFile"
 	    printf "%s\t%s\t%i\t%i\n" "$gotTopic" $gotStartTime   $thisCount $thisReg >> $mungFile
 	    sed -i -e 's/\"//g' $mungFile
 	fi
@@ -117,7 +117,7 @@ fetchInstance()
     curl -s --location --request GET \
 	 'https://api.zoom.us/v2/past_meetings/'"$thisItem"/participants?page_size=100\
 	 --header 'Authorization: Bearer '"$thisAuth" -o $tmp/$other.participants.json
-    thisCount=$(jq -r '[.participants[].id] | unique | length' $tmp/$thisItem.participants.json)
+    thisCount=$(jq -r '[.participants[].name] | unique | length' $tmp/$thisItem.participants.json)
 }
 
 mung()
@@ -150,7 +150,7 @@ while getopts "hs:v" opt; do
 done
 getMeetings
 meetingBasics
-#awk -F '\t' '{printf "%s\t %s\t %d`\t %.2f%\n"  $1, $2,$3, $4 ,(int (v$3)/int($4)*100 )}' $mungFile > attendance.tsv
-awk -F '\t' '{printf "%s\t%s\t%.2f%%\t%d\t%d\n",  $1, $2 ,($3/$4)*100, $3, $4 }' /home/ubuntu/tmp/meetings/mung.list > attendance.tsv
+sort -k1,2 -o mung.list  mung.list
+awk -F '\t' '{printf "%s\t%s\t%.2f%%\t%d\t%d\n",  $1,  strftime("%c",$2) ,($3/$4)*100, $3, $4 }' /home/ubuntu/tmp/meetings/mung.list > attendance.tsv
 sed -i '1s/^/Course	Date	Percentage	Attendance	Registration\n/' attendance.tsv
 ssconvert attendance.tsv attendance.xlsx
