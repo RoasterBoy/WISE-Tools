@@ -8,7 +8,8 @@
 ##
 trap "rm -vf this.* hosts.json cadaver.put " EXIT
 set -e
-start_time="$(date -u +%s)"
+#start_time="$(date -u +%s)"
+SECONDS=0
 simple=false
 download=false
 help()
@@ -514,5 +515,6 @@ fi
 do$cmd "$rptType"
 #
 end_time=$(date -u +%s)
-elapsed=$((end_time-start_time))
-msg "Elapsed time: $elapsed seconds"
+#elapsed=$((end_time-start_time))
+#msg "Elapsed time: $elapsed seconds"
+msg "Now with \$SECONDS: $SECONDS"
