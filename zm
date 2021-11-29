@@ -1,5 +1,8 @@
 #!/bin/bash
-# TODO Parse options to the `zoom` command
+### TODO Parse options to the `zoom` command
+#
+### TODO Figure out what to do when there are multiple recordings on the same day
+#
 ## TIL
 ## 1/12/21
 ## When we get this error, it means this
@@ -8,10 +11,10 @@
 ##
 trap "rm -vf this.* hosts.json cadaver.put " EXIT
 set -e
-#start_time="$(date -u +%s)"
 SECONDS=0
 simple=false
 download=false
+init=true
 help()
 {
     thisScript=$(which "$0")
@@ -62,7 +65,7 @@ setup()
 }
 init()
 {
-    tmp=~/tmp/$start_time
+    tmp=~/tmp/"$(date -u +%s)"
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
 	return
