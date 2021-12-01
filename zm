@@ -9,7 +9,8 @@
 ## "The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256"
 ## There's a problem with the Zoom Secret in .bashrc
 ##
-trap "rm -vf this.* hosts.json cadaver.put " EXIT
+trap "rm -vf  hosts.json cadaver.put " EXIT
+# Keeping this.* for now
 set -e
 SECONDS=0
 simple=false
@@ -124,17 +125,17 @@ meetingBasics()
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
 		 --header 'Authorization: Bearer '"$thisAuth"\
-		 -o "$tmp"/"$thisMtg".details.json 
+		 -o "$tmp"/"$thisMtg".details.json
 	fi
 	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	if [[ $gotTopic = "" ]] ; then
-	    if [[ $keepDetail = true ]]; then
+#	    if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
     		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
-	    else
-		rm "$tmp"/"$thisMtg".details.json
-	    fi
+#	    else
+#		rm "$tmp"/"$thisMtg".details.json
+#	    fi
 	else
 	    echo "$gotItem" >> "$rptTypeList" 
 	fi
@@ -216,6 +217,15 @@ dblEncode()
     other=$(urlencode $that)
     echo $other
 }
+patchRecordings()
+{
+    thisMtg=$1
+    curl -s --request PATCH \
+	 -H "Content-Type: application/json" \
+	 -d '{"viewer_download": true}' \
+         --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/settings' \
+         --header 'authorization: Bearer '"$thisAuth" > $tmp/$thisMtg.update.txt
+    }
 doRecordings()
 {
     recDir=/archives/Recordings
@@ -225,9 +235,16 @@ doRecordings()
 
     curl -s --request GET \
 	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=150&from='$since'&type=past' \
-	 --header 'authorization: Bearer '"$thisAuth" > this.json
-    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
-     while IFS='	' read -r thisTime thisUUID thisTopic ; do
+	 --header 'authorization: Bearer '"$thisAuth" -o $tmp/this.json
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' $tmp/this.json > $tmp/this.tsv
+
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | .id ' $tmp/this.json > $tmp/IDs.txt
+    while IFS='' read -r thisMtg;
+    do
+	patchRecordings $thisMtg
+    done < $tmp/IDs.txt
+
+    while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 i=$((i+1))
 	 dblEncode $thisUUID
 	 curl -s --request GET \
@@ -252,7 +269,7 @@ doRecordings()
 	     rptParticipants "$recFile"
 	     # Doing downloads. 
 
-	     ### TODO check if there's enough space before downlading. Exit with message and ?email
+	     ### TODO check if there's enough space before downloading. Exit with message and ?email
 	     ### TODO Backup archives to OneDrive, Dropbox
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
@@ -262,7 +279,7 @@ doRecordings()
 	     fi
 	 fi
      done < this.tsv
-     echo "what size is $justLinks"
+     msg "what size is $justLinks?"
 	if [ -s $justLinks ]; then 
 	    sort -r "$justLinks" > "$sortedLinks"
 	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
@@ -517,7 +534,4 @@ if [[ -z $cmd ]]; then
 fi
 do$cmd "$rptType"
 #
-end_time=$(date -u +%s)
-#elapsed=$((end_time-start_time))
-#msg "Elapsed time: $elapsed seconds"
-msg "Now with \$SECONDS: $SECONDS"
+msg "Elapsed time: $SECONDS"
