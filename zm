@@ -278,7 +278,7 @@ doRecordings()
 		 wget -q $dlFile -O $recDir/$recFile
 	     fi
 	 fi
-     done < this.tsv
+     done < $tmp/this.tsv
      msg "what size is $justLinks?"
 	if [ -s $justLinks ]; then 
 	    sort -r "$justLinks" > "$sortedLinks"
