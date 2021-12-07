@@ -32,9 +32,12 @@ background-color: white!important;
   transition-duration: 0.4s;
   box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
 }
-.infoRegistrationIsClosed span{
-  display: none;
+.infoRegistrationIsClosed {
+  visibility: hidden;
 }
-.infoRegistrationIsClosed:after {
-  content: '. Registration will open on December 15.';
+.infoRegistrationIsClosed::after {
+ visibility: visible;
+ position: relative;
+content: 'Registration will open on December 15.';
+display: block;
 }
