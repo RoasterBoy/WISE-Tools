@@ -9,6 +9,8 @@
 ## "The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256"
 ## There's a problem with the Zoom Secret in .bashrc
 ##
+### Use zmtmp system variable to set location of \$tmp
+### Use zmarchive system variable to set location of \$recDir
 trap "rm -vf  hosts.json cadaver.put " EXIT
 # Keeping this.* for now
 set -e
@@ -66,7 +68,11 @@ setup()
 }
 init()
 {
-    tmp=~/tmp/"$(date -u +%s)"
+    if [ -z ${zmtmp+x} ]; then 
+	tmp=~/tmp/"$(date -u +%s)"
+    else
+	tmp="$zmtmp"
+    fi
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
 	return
@@ -228,7 +234,11 @@ patchRecordings()
     }
 doRecordings()
 {
-    recDir=/archives/Recordings
+    if [ -z ${zmarchive+x} ]; then 
+	recDir=/archives/Recordings
+    else
+	recDir="$zmarchive"
+    fi
     msg "Geting recordings for $trackingField"
     since=$(date +%Y-%m-%d -d "30 days ago")
 #    since="2021-02-01"
