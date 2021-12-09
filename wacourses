@@ -100,6 +100,15 @@ doList()
 {
 curl -s --header "Authorization: Bearer $thisAuth" 'https://api.wildapricot.org/v2.2/accounts/204432/Events?%24filter=IsUpcoming%20eq%20true' | jq -r '.Events[].Name' | sort -V > $tmp/courses.txt
 #
+}
+doDoc ()
+{
+    :> $tmp/courses.html
+    doList
+    while IFS='' read -r course;
+    do
+	echo "<h2>$course</h2><p>" >> $tmp/courses.html
+    done < courses.txt 
     }
 doHTML()
 {
@@ -134,13 +143,17 @@ curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events/'$eventId -o $tmp/$eventId.json
 }
 
-while getopts "lut:hvr" opt; do
+while getopts "dlut:hvr" opt; do
     case ${opt} in
 	l )
 	### -l List courses
 	# Just list course titles
 	    rptType=list
-	;;
+	    ;;
+	d )
+	    ### -d Make list of courses into an HTML document. Output file name is courses.html
+	    rptType=doc
+	    ;;
 	u ) # Get Upcoming Courses
 	    ### -u Get upcoming events
 	    echo "Getting upcoming events"
@@ -172,8 +185,12 @@ done
 setup
 getAuth
 msg "Getting courses, putting details in $tmp"
-if [[ $rptType = "list" ]]; then
+if [[ $rptType = "list" ]];
+then
     doList
+elif [[ $rptType = "doc" ]]; 
+then
+    doDoc
 else
     getEvents $tagFilter $eventFilter
     mungFiles
