@@ -276,7 +276,7 @@ doRecordings()
 	     cat $tmp/$i.tsv >> $justLinks
 
 	     getParticipants $thisUUID "$recFile"
-	     rptParticipants "$recFile"
+	     rptParticipants "$other"
 	     # Doing downloads. 
 
 	     ### TODO check if there's enough space before downloading. Exit with message and ?email
@@ -317,13 +317,16 @@ getParticipants()
 }
 rptParticipants()
 {
-     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/"$partFile".csv
-     for part in "$tmp"/*participants.json;
-     do
-	 jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/"$partFile".csv
-     done
-     msg "Participants' file is $tmp/"$partFile".xlsx"
-     ssconvert "$tmp"/"$partFile".csv "$tmp"/"$partFile".xlsx
+    local thisSession=${1%.mp4}.participants.json
+#     for part in "$tmp"/*participants.json;
+    #     do
+	 thisCSV=${thisSession%.json}.csv
+    jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession" > "$tmp"/"$thisCSV"
+#     done
+	 sort -u -t, -k1,1 $tmp/$thisCSV
+	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisCSV"
+	 msg "Participants' file is $tmp/"$thisSession".xlsx"
+	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
 }
 downloadRecordings()
 {
