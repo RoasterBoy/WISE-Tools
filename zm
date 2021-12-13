@@ -196,7 +196,7 @@ doMtg()
 	do
 	    thisTopic=$(jq '.topic' "$file")
 	    msg "Deep Work on $thisTopic"
-	    thisURL=$(jq '.registration_url' $file)
+	    thisURL=$(jq -r '.registration_url' $file)
 	    if [  $thisURL = "null" ]; then
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
