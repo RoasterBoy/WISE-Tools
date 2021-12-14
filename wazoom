@@ -40,8 +40,12 @@ init()
     rm -r "${tmp:?}"/*
 }
 #
-createCourse()
+createCourse() 
 {
+#    echo "got \$1 $1"
+#    echo "got \$2 $2"
+#    echo "got \$3 $3"
+#    echo "got \$4 $4"
     topic=$1
     startTime=$2
     repeats=$3
@@ -54,9 +58,8 @@ createCourse()
     thisDow=$(date --date "$startTime" +%w)
     # We're subtracting 1 here because Zoom starts the week on Sunday while this function uses Monday as the start of the week.
     thisDow=$((thisDow + 1))
-    thisOut=$(echo $topic | sed -e 's/.\([CD][0-9]*\).*/\1.json/')
-    echo $thisOut
-cat <<Endofmessage >payload.json
+#    thisOut=$(echo $topic | sed -e 's/.\([CD][0-9]*\).*/\1.json/')
+cat <<Endofmessage >$tmp/$4.payload.json
 {
     "host_id": "sZbpHXjlQxiQHTLao_-paA",
     "topic": "$topic",
@@ -93,24 +96,17 @@ cat <<Endofmessage >payload.json
 Endofmessage
 
 }
-
 uploadCourse()
 {
-inFile=$1
+    inFile=$1
+    outFile=${inFile%payload.json}completed.json
 thisAuth=$(python ~/WISE-Tools/get.auth.py)
 #
 
 curl  --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings' \
       --header 'content-type: application/json' -d "@$inFile" \
-      --header 'Authorization: Bearer '"$thisAuth" -o $courseFile
-
+      --header 'Authorization: Bearer '"$thisAuth" -o $outFile
 }
-gotArgs()
-{
-    echo "got \$1 $1"
-    echo "got \$2 $2"
-    echo "got \$3 $3"
- }
 
 while getopts "f:v" opt; do
     case ${opt} in
@@ -126,8 +122,16 @@ done
 echo "thisFile is $thisFile"  
 setup
 init
-createCourse "$1" "$2" $3 $4
-courseFile=$tmp/$4.json
-uploadCourse payload.json
+# Get upcoming courses
+waevents -vu
+#jq -r '.Events[]| [.Id, .Name, .StartDate, (.Sessions|length)]|@tsv ' events.json
+jq -r '.Events[]|[  .Name, .StartDate, (.Sessions | length), .Id] | @tsv' ~/tmp/wa/events.json > $tmp/events.tsv
+while IFS=$'\t' read -r title start occurrences id; do
+    createCourse "$title" "$start" $occurrences $id
+done < $tmp/events.tsv
+
+for payload in $tmp/*payload.json; do
+    uploadCourse $payload
+done
 
   
