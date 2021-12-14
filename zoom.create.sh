@@ -50,21 +50,22 @@ createCourse()
     fi
     echo $startTime
     password=$(date '+%s')
-    thisStart=$(date --date=$startTime +"%Y-%m-%dT%H:%M:00")
-    dow=$(date --date $startTime +%u)
+    thisStart=$(date --date="$startTime" +"%Y-%m-%dT%H:%M:00")
+    thisDow=$(date --date "$startTime" +%w)
+    # We're subtracting 1 here because Zoom starts the week on Sunday while this function uses Monday as the start of the week.
+    thisDow=$((thisDow + 1))
     thisOut=$(echo $topic | sed -e 's/.\([CD][0-9]*\).*/\1.json/')
     echo $thisOut
-    exit
 cat <<Endofmessage >payload.json
 {
     "host_id": "sZbpHXjlQxiQHTLao_-paA",
-    "topic": $topic,
+    "topic": "$topic",
     "agenda": "Host: TBD<br/>Class Assistant: TBD",
-    "password": "password",
+    "password": "$password",
     "type": 8,
     "status": "waiting",
     "duration":90,
-    "start_time": $thisStart,
+    "start_time": "$thisStart",
     "recurrence": {
 	"repeat_interval": 1,
 	"type": 2,
@@ -95,85 +96,14 @@ Endofmessage
 
 uploadCourse()
 {
-=======
-{
-    tmp=~/tmp/zoom
-    mkdir -p "$tmp"
-    touch "$tmp"/tmp.tmp
-    rm -r "${tmp:?}"/*
-}
-
 inFile=$1
-counter=0
 thisAuth=$(python ~/WISE-Tools/get.auth.py)
-while IFS=$'\t' read -r topic thisDate sessions; do
-    echo "Got \$topic: $topic"
-    echo "Got \$thisStart $thisStart"
-    echo "Got \$sessions $sessions"
-    counter=$((counter+1))
-    payload=payload$counter.json
-    courseFile=course$counter.json
-    password=$(date '+%s')
-    dow=$(date --date="$thisStart" +%u)
-    thisDow=$((dow + 1)) 
-    thisStart=$(date --date="$thisDate" +"%Y-%m-%dT%H:%M:00")
-
-    ### Creates a Zoom meeting
-    ### Required fields
-    ### 1 - Topic. Must be a quoted string
-    ### 2 - Start date-time. Must be a valid date-time string "YYY-MM-DD HH:MMp"
-    ### 3 - Number of class meetings, typically 5
-    # Make sure that we have all of the values needed
-    if [[ -z $topic || -z  $thisStart || -z $sessions ]]; then
-	echo 'one or more variables are undefined'
-	exit 1
-    fi
-        cat <<-EOF > $payload
-    { 
-       "host_id": "sZbpHXjlQxiQHTLao_-paA",
-       "topic": "$topic",
-       "type": 8,
-       "timezone": "America/New_York",
-       "agenda": "Host: TBD<br/>Class Assistant: TBD",
-       "password": "$password",
-       "recurrence": {
-       		     "type": 2,
-       		     "weekly_days": "$thisDow",
-		     "repeat_interval": 1,
-		     "end_times": $sessions
-		          },
-     "start_time": "$thisStart",
-     "duration": 90,
-     "settings": {
-      		     "join_before_host": true,
-     		     "jbh_time": 15,
-		     "approval_type": 2,
-		     "auto_recording": "cloud",
-		     "alternative_hosts": "",
-		     "global_dial_in_countries": [
-		     		 "US"
-				          ]},
-     "tracking_fields": [{
-     			"field": "Meeting type",
-			"value": "Course",
-			"visible": true
-			}]
-    }
-EOF
-curl  --location --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings' \
-      --header 'content-type: application/json' -d "@$payload" \
-      --header 'Authorization: Bearer '"$thisAuth" -o $courseFile.json
-done < $inFile
-
-# Now do it
-# For now, we'll use Karl's user ID
-#
-# sZbpHXjlQxiQHTLao_-paA
 #
 
-curl  --location --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings' \
-      --header 'content-type: application/json' -d "@payload.json" \
-      --header 'Authorization: Bearer '"$thisAuth" -o thisCourse.json
+curl  --request  POST 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings' \
+      --header 'content-type: application/json' -d "@$inFile" \
+      --header 'Authorization: Bearer '"$thisAuth" -o $courseFile
+
 }
 gotArgs()
 {
@@ -196,8 +126,8 @@ done
 echo "thisFile is $thisFile"  
 setup
 init
-awk -F, '{print $1, $2, $3}' $thisFile 
-
-#python -mjson.tool payload.json
+createCourse "$1" "$2" $3 $4
+courseFile=$tmp/$4.json
+uploadCourse payload.json
 
   
