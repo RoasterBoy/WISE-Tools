@@ -1,43 +1,46 @@
 .WaGadgetLoginForm .loginContainer.loginContainer .loginLink:before {
-position : absolute;
-top : 0;
-left : 0;
-width : 100%;
-height : 100%;
-font : normal 25px/50px 'WA-theme-icons';
-text-align : center;
-text-indent : 0;
-content : url(https://assumptionwise.org/resources/Pictures/Home%20Page%20icons/WA.LogIn.LogOut%20.png);
+    position : absolute;
+    top : 0;
+    left : 0;
+    width : 100%;
+    height : 100%;
+    font : normal 25px/50px 'WA-theme-icons';
+    text-align : center;
+    text-indent : 0;
+    content : url(https://assumptionwise.org/resources/Pictures/Home%20Page%20icons/WA.LogIn.LogOut%20.png);
 }
 
 .levelPrice,.levelRenewal {display:none;}
- .WaGadgetMenuVertical ul.firstLevel  {
+.WaGadgetMenuVertical ul.firstLevel  {
 
-background-color: white!important;
+    background-color: white!important;
 
 }
 .MemberButton {
-  background-color: white; 
-  border: solid 3px #005195;
-  color: #005195;
-  padding: 15px 32px;
-  text-align: center;
-  text-decoration: bold;
-  display: inline-block;
-  font-size: 18px;
-  margin: 4px 2px;
-  cursor: pointer;
-  border-radius:  24px;
-  -webkit-transition-duration: 0.4s; /* Safari */
-  transition-duration: 0.4s;
-  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+    background-color: white;
+    border: solid 3px #005195;
+    color: #005195;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: bold;
+    display: inline-block;
+    font-size: 18px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius:  24px;
+    -webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
 }
 .infoRegistrationIsClosed {
-  visibility: hidden;
+    visibility: hidden;
 }
 .infoRegistrationIsClosed::after {
- visibility: visible;
- position: relative;
-content: 'Registration will open on December 15.';
-display: block;
+    visibility: visible;
+    position: relative;
+    content: 'Registration will open on December 15.';
+    display: block;
+}
+#FunctionalBlock1_ctl00_eventPageViewBase_ctl00_ctl00_eventInfoBox_ticketsLeft {
+    display: none;
 }
