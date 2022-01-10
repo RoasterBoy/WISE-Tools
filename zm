@@ -106,7 +106,8 @@ getMeetings()
     fi
 	getHosts # returns $hostList
 	while IFS='' read -r thisHost ; do
-	    msg "Working on meetings for $thisHost"
+	    # Removing some noise
+	    # msg "Working on meetings for $thisHost"
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
 		 --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
