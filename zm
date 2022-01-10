@@ -328,22 +328,6 @@ rptParticipants()
 	 msg "Participants' file is $tmp/"$thisSession".xlsx"
 	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
 }
-downloadRecordings()
-{
-    ### TODO Put the recordings in a shared space (Dropbox/WISE/
-    recDir=~/Recordings
-    mkdir -p "$recDir"
-    while IFS='' read -r thisItem; do
-	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.download.links.jq "$tmp"/big.json >> "$downloadLinks"
-    done < "$gThisList"
-    while IFS='' read -r thisItem; do
-	thisFile=$(echo $thisItem | awk  '{printf "%s-%s.MP4\n", $1, $2}')
-	downloadUrl=$(echo $thisItem | awk  '{print $3}')
-	if [ ! -f $recDir/$thisFile ]; then
-	    wget  --content-disposition -v "$downloadUrl" -O  $recDir/$thisFile
-	fi
-    done < "$downloadLinks"
-}
 doParticipation()
 {
     msg "Doing Participation"
@@ -381,7 +365,7 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
 	d )
 	    ### -d Download recordings
 	    ### TODO: make this only valid with -r
-	    download=true
+#	    download=true
 	    ;;
 	n )
 	    ### -n "Add note to the start of the report page. Must be quoted string"
