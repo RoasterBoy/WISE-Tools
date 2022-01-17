@@ -9,10 +9,10 @@
 set -e 
 start_time="$(date -u +%s)"
 tmp=~/tmp/wa
-outdir=~/tmp/out
+outDir=~/tmp/out
 eventFilter=""
 tagFilter=""
-
+:>$outDir/registrations.csv
 
 help()
 {
@@ -37,9 +37,9 @@ setup ()
     mkdir -p $tmp
     touch $tmp/tmp.tmp
     rm -r $tmp/*
-    mkdir -p $outdir
-    touch $outdir/tmp.tmp
-    rm $outdir/*
+    mkdir -p $outDir
+    touch $outDir/tmp.tmp
+    rm $outDir/*
 ##
 # 
 # end setup
@@ -74,8 +74,9 @@ msg "Events information is in $tmp/events.json"
 mungFiles ()
 {
 #
-while IFS='' read -r thisCourse || [[ -n "$thisCourse" ]]; do
-#    echo "Got this event $thisCourse"
+    #while IFS='' read -r thisCourse || [[ -n "$thisCourse" ]]; do
+    while IFS='' read -r thisCourse ; do
+    echo "Got this event $thisCourse"
     curl -s --header "Authorization: Bearer $thisAuth"\
  	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/eventregistrations?eventId=$thisCourse&includeWaitList=true" \
 	 -o $tmp/$thisCourse.registrations.json
@@ -93,6 +94,9 @@ while IFS='' read -r thisCourse || [[ -n "$thisCourse" ]]; do
 	else
 	    
 	    msg "Working on $thisName"
+	    if [[ $countRegs = true ]]; then
+		jq  -r '[.Name, .ConfirmedRegistrationsCount]| @csv' $tmp/$thisCourse.details.json >> $outDir/registrations.csv
+	    fi
 	fi
 done  < $tmp/events.list
 }
@@ -109,7 +113,8 @@ doDoc ()
     do
 	echo "<h2>$course</h2><p>" >> $tmp/courses.html
     done < courses.txt 
-    }
+}
+
 doHTML()
 {
     # Here we create files that contain the registration info for each member.
@@ -143,8 +148,12 @@ curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events/'$eventId -o $tmp/$eventId.json
 }
 
-while getopts "dlut:hvr" opt; do
+while getopts "cdlut:hvr" opt; do
     case ${opt} in
+	c )
+	    ### -c Count registrations
+	    countRegs=true
+	    ;;
 	l )
 	### -l List courses
 	# Just list course titles
@@ -179,7 +188,9 @@ while getopts "dlut:hvr" opt; do
 	    ;;
     esac
 done
-# 
+### Dunno why this is not getting the last two courses in event.list
+echo "BROKEN: Dunno why this is not getting the last two courses in event.list"
+exit
 # 
 # 
 setup
