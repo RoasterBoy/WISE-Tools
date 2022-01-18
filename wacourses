@@ -63,8 +63,8 @@ getEvents ()
 curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events'"$filterString" -o $tmp/events.json
 #jq '.[] | sort_by(.Id) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
-jq '.EventsIdentifiers[]' $tmp/events.json > $tmp/events.list 
-
+jq '.EventsIdentifiers[]' $tmp/events.json > $tmp/events.list
+echo "" >> $tmp/events.list
 msg "Events information is in $tmp/events.json"
 }
 
@@ -73,11 +73,11 @@ msg "Events information is in $tmp/events.json"
 #
 mungFiles ()
 {
-#
-    #while IFS='' read -r thisCourse || [[ -n "$thisCourse" ]]; do
-    while IFS='' read -r thisCourse ; do
-    echo "Got this event $thisCourse"
-    curl -s --header "Authorization: Bearer $thisAuth"\
+    #
+    echo "MUNGING FILES"
+    while IFS= read -r thisCourse || [[ -n "$thisCourse" ]]; do
+	echo "Got this event $thisCourse"
+	curl -s --header "Authorization: Bearer $thisAuth"\
  	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/eventregistrations?eventId=$thisCourse&includeWaitList=true" \
 	 -o $tmp/$thisCourse.registrations.json
 	curl -s --header "Authorization: Bearer $thisAuth"  \
@@ -113,6 +113,13 @@ doDoc ()
     do
 	echo "<h2>$course</h2><p>" >> $tmp/courses.html
     done < courses.txt 
+}
+doCount()
+{
+    curl -s --header "Authorization: Bearer $thisAuth"\
+	 'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events?%24filter=IsUpcoming%20eq%20true' | \
+	jq --raw-output '.Events[] | [.Name, .ConfirmedRegistrationsCount] | @csv'  >> $tmp/registrations.csv
+    iconv -c -f utf-8 -t ascii $tmp/registrations.csv -o $tmp/registrations.csv
 }
 
 doHTML()
@@ -153,6 +160,7 @@ while getopts "cdlut:hvr" opt; do
 	c )
 	    ### -c Count registrations
 	    countRegs=true
+	    rptType=count
 	    ;;
 	l )
 	### -l List courses
@@ -167,7 +175,7 @@ while getopts "cdlut:hvr" opt; do
 	    ### -u Get upcoming events
 	    echo "Getting upcoming events"
 	    eventFilter='IsUpcoming%20eq%20true'
-	    rptType=HTML
+#	    rptType=HTML
 	    ;;
 	t ) # Tags
 	    ### the -t option is broken now
@@ -189,24 +197,30 @@ while getopts "cdlut:hvr" opt; do
     esac
 done
 ### Dunno why this is not getting the last two courses in event.list
-echo "BROKEN: Dunno why this is not getting the last two courses in event.list"
-exit
 # 
 # 
 setup
 getAuth
-msg "Getting courses, putting details in $tmp"
-if [[ $rptType = "list" ]];
-then
-    doList
-elif [[ $rptType = "doc" ]]; 
-then
-    doDoc
-else
-    getEvents $tagFilter $eventFilter
-    mungFiles
-    do$rptType
-fi
+case ${rptType} in
+    list )
+	msg "Getting courses, putting details in $tmp"
+	doList
+	;;
+    doc )
+	msg "Doing Doc"
+	doDoc
+	;;
+    count )
+	msg "Doing count"
+	doCount
+	;;
+    * )
+	getEvents $tagFilter $eventFilter
+	mungFiles
+	do$rptType
+	;;
+esac
+
 end_time=$(date -u +%s)
 elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"
