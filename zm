@@ -318,11 +318,11 @@ getParticipants()
 }
 rptParticipants()
 {
-    local thisSession=${1%.mp4}.participants.json
+    local thisSession=${1%.mp4}.participants
 #     for part in "$tmp"/*participants.json;
     #     do
-	 thisCSV=${thisSession%.json}.csv
-    jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession" > "$tmp"/"$thisCSV"
+	 thisCSV=$thisSession.csv
+    jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession".json > "$tmp"/"$thisCSV"
 #     done
 	 sort -u -t, -k1,1 $tmp/$thisCSV
 	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisCSV"
