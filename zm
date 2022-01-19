@@ -324,7 +324,7 @@ rptParticipants()
 	 thisCSV=$thisSession.csv
     jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession".json > "$tmp"/"$thisCSV"
 #     done
-	 sort -u -t, -k1,1 $tmp/$thisCSV
+	 sort -u -t, -k1,1 $tmp/$thisCSV -o $tmp/$thisCSV
 	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisCSV"
 	 msg "Participants' file is $tmp/"$thisSession".xlsx"
 	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
