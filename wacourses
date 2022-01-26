@@ -9,10 +9,8 @@
 set -e 
 start_time="$(date -u +%s)"
 tmp=~/tmp/wa
-outDir=~/tmp/out
 eventFilter=""
 tagFilter=""
-:>$outDir/registrations.csv
 
 help()
 {
@@ -37,10 +35,6 @@ setup ()
     mkdir -p $tmp
     touch $tmp/tmp.tmp
     rm -r $tmp/*
-    mkdir -p $outDir
-    touch $outDir/tmp.tmp
-    rm $outDir/*
-##
 # 
 # end setup
 }
@@ -75,6 +69,7 @@ mungFiles ()
 {
     #
     echo "MUNGING FILES"
+	    exit
     while IFS= read -r thisCourse || [[ -n "$thisCourse" ]]; do
 	echo "Got this event $thisCourse"
 	curl -s --header "Authorization: Bearer $thisAuth"\
@@ -95,7 +90,7 @@ mungFiles ()
 	    
 	    msg "Working on $thisName"
 	    if [[ $countRegs = true ]]; then
-		jq  -r '[.Name, .ConfirmedRegistrationsCount]| @csv' $tmp/$thisCourse.details.json >> $outDir/registrations.csv
+		jq  -r '[.Name, .ConfirmedRegistrationsCount]| @csv' $tmp/$thisCourse.details.json >> $tmp/registrations.csv
 	    fi
 	fi
 done  < $tmp/events.list
@@ -118,7 +113,7 @@ doCount()
 {
     curl -s --header "Authorization: Bearer $thisAuth"\
 	 'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events?%24filter=IsUpcoming%20eq%20true' | \
-	jq --raw-output '.Events[] | [.Name, .ConfirmedRegistrationsCount] | @csv'  >> $tmp/registrations.csv
+	jq --raw-output '.Events[] | [.Name, .ConfirmedRegistrationsCount] | @csv'  > $tmp/registrations.csv
     iconv -c -f utf-8 -t ascii $tmp/registrations.csv -o $tmp/registrations.csv
 }
 
@@ -201,6 +196,7 @@ done
 # 
 setup
 getAuth
+:>$tmp/registrations.csv
 case ${rptType} in
     list )
 	msg "Getting courses, putting details in $tmp"
