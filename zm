@@ -69,7 +69,7 @@ setup()
 init()
 {
     if [ -z ${zmtmp+x} ]; then 
-	tmp=~/tmp/"$(date -u +%s)"
+	tmp=~/tmp/"$rptType-$(date -u +%s)"
     else
 	tmp="$zmtmp"
     fi
@@ -201,7 +201,8 @@ doMtg()
 	    if [  $thisURL = "null" ]; then
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
-	    echo $thisURL 
+	    echo $thisURL
+	    ### TODO do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
@@ -445,6 +446,7 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
 		    awkFile=$awkDir/zoom.courses.awk
 		    cmd=Courses
 		    rptFile=Courses.html
+		    rptType=Courses
 		;;
 		training)
 		    ###        Committees
@@ -471,6 +473,7 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
 		    awkFile=$awkDir/zoom.events.awk
 		    cmd=Mtg
 		    rptFile=Events.html
+		    rptType=Events
 		    ;;
 		club*)
 		    ###        Clubs
