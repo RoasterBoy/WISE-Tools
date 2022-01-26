@@ -449,7 +449,7 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
 		    rptType=Courses
 		;;
 		training)
-		    ###        Committees
+		    ###        Training
 		    trackingField="Training"
 		    rptTitle="Zoom Links for Training Sessions"
 		    cmd=Mtg
