@@ -68,8 +68,6 @@ msg "Events information is in $tmp/events.json"
 mungFiles ()
 {
     #
-    echo "MUNGING FILES"
-	    exit
     while IFS= read -r thisCourse || [[ -n "$thisCourse" ]]; do
 	echo "Got this event $thisCourse"
 	curl -s --header "Authorization: Bearer $thisAuth"\
@@ -100,6 +98,24 @@ doList()
 curl -s --header "Authorization: Bearer $thisAuth" 'https://api.wildapricot.org/v2.2/accounts/204432/Events?%24filter=IsUpcoming%20eq%20true' | jq -r '.Events[].Name' | sort -V > $tmp/courses.txt
 #
 }
+doRegs()
+{
+    #
+        while IFS= read -r thisCourse || [[ -n "$thisCourse" ]]; do
+	echo "Got this event $thisCourse"
+	curl -s --header "Authorization: Bearer $thisAuth"\
+ 	 "https://api.wildapricot.org/v2.2/accounts/$WA_account/eventregistrations?eventId=$thisCourse&includeWaitList=true" \
+	 -o $tmp/$thisCourse.registrations.json
+
+done  < $tmp/events.list
+	for file in "$tmp"/*registrations.json;
+		    ### FIX THIS TO MAKE CSV
+		    echo "FIX THIS TO MAKE CSV"
+	do
+	    echo "Working on $file" 
+	    jq --raw-output '.[]|.RegistrationFields[]| .Value' $file > $file.csv
+	done
+}
 doDoc ()
 {
     :> $tmp/courses.html
@@ -115,6 +131,7 @@ doCount()
 	 'https://api.wildapricot.org/v2.2/accounts/'"$WA_account"'/Events?%24filter=IsUpcoming%20eq%20true' | \
 	jq --raw-output '.Events[] | [.Name, .ConfirmedRegistrationsCount] | @csv'  > $tmp/registrations.csv
     iconv -c -f utf-8 -t ascii $tmp/registrations.csv -o $tmp/registrations.csv
+    sort -V $tmp/registrations.csv -o $tmp/registrations.csv
 }
 
 doHTML()
@@ -172,6 +189,11 @@ while getopts "cdlut:hvr" opt; do
 	    eventFilter='IsUpcoming%20eq%20true'
 #	    rptType=HTML
 	    ;;
+	r )
+	    ### -r Make course registration lists
+	    eventFilter='IsUpcoming%20eq%20true'
+	    rptType=reg
+	    ;;
 	t ) # Tags
 	    ### the -t option is broken now
 	    ### -t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\"
@@ -201,6 +223,11 @@ case ${rptType} in
     list )
 	msg "Getting courses, putting details in $tmp"
 	doList
+	;;
+    reg )
+	msg "Making course registration lists"
+	getEvents  $eventFilter
+	doRegs
 	;;
     doc )
 	msg "Doing Doc"
