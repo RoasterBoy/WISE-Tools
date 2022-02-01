@@ -12,7 +12,6 @@ tmp=~/tmp/wa
 outDir=~/tmp/out
 eventFilter=""
 tagFilter=""
-:>$outDir/registrations.csv
 
 help()
 {
@@ -75,6 +74,7 @@ mungFiles ()
 {
     #
     echo "MUNGING FILES"
+    :>$outDir/registrations.csv
     while IFS= read -r thisCourse || [[ -n "$thisCourse" ]]; do
 	echo "Got this event $thisCourse"
 	curl -s --header "Authorization: Bearer $thisAuth"\
@@ -198,7 +198,8 @@ while getopts "cdlut:hvr" opt; do
 done
 ### Dunno why this is not getting the last two courses in event.list
 # 
-# 
+#
+echo "Doing setup"
 setup
 getAuth
 case ${rptType} in
