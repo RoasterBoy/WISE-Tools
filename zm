@@ -286,12 +286,14 @@ doRecordings()
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
-		 msg "Would be $recDir/$recFile here."
-#		 wget -q $dlFile -O $recDir/$recFile
+		 if [ $doArhive = true ];
+		    msg "Would be $recDir/$recFile here."
+		    wget -q $dlFile -O $recDir/$recFile
+		 fi
 	     fi
 	 fi
      done < $tmp/this.tsv
-     msg "what size is $justLinks?"
+
 	if [ -s $justLinks ]; then 
 	    sort -r "$justLinks" > "$sortedLinks"
 	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
@@ -360,6 +362,10 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
     awkDir=$thisDir/awk
     jqDir=$thisDir/jq
     case ${opt} in
+	a )
+	    ### -a Archive recordings. Useful only with -r; ignored with other options.
+	    doArchive=true
+	    ;;
 	K )
 	    ### -K keep temporary json meeting files (for debugging)
 	    keepDetails=true
