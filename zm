@@ -286,8 +286,8 @@ doRecordings()
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
-		 msg "Downloading $recDir/$recFile here."
-		 wget -q $dlFile -O $recDir/$recFile
+		 msg "Would be $recDir/$recFile here."
+#		 wget -q $dlFile -O $recDir/$recFile
 	     fi
 	 fi
      done < $tmp/this.tsv
@@ -448,8 +448,17 @@ while getopts "Kn:dr:Pt:nShvV" opt; do
 		    rptFile=Courses.html
 		    rptType=Courses
 		;;
+		summer*)
+		    ###        Summer 
+		    trackingField="Summer"
+		    rptTitle="Zoom Links for Summer Courses"
+		    awkFile=$awkDir/zoom.courses.awk
+		    cmd=Courses
+		    rptFile=Summer.Courses.html
+		    rptType=Courses
+		;;
 		training)
-		    ###        Committees
+		    ###        Training
 		    trackingField="Training"
 		    rptTitle="Zoom Links for Training Sessions"
 		    cmd=Mtg
