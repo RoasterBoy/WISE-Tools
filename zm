@@ -286,9 +286,9 @@ doRecordings()
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
-		 if [ $doArhive = true ];
-		    msg "Would be $recDir/$recFile here."
-		    wget -q $dlFile -O $recDir/$recFile
+		 if [ $doArchive = true ]; then
+		     msg "Would be $recDir/$recFile here."
+		     wget -q $dlFile -O $recDir/$recFile
 		 fi
 	     fi
 	 fi
