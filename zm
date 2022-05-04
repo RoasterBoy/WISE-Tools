@@ -287,7 +287,7 @@ doRecordings()
 		 msg "No need to download $recDir/$recFile"
 	     else
 		 if [ $doArchive == true ]; then
-		     msg "Would be $recDir/$recFile here."
+		     msg "Downloading $recDir/$recFile ..."
 		     wget -q $dlFile -O $recDir/$recFile
 		 fi
 	     fi
@@ -353,7 +353,7 @@ doParticipation()
 }
 
 
-while getopts "Kn:dr:Pt:nShvV" opt; do
+while getopts "aKn:dr:Pt:nShvV" opt; do
     shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
