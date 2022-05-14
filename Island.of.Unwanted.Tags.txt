@@ -64,3 +64,5 @@ sigs
 zoom
 CWI
 cwi
+c-wednesday.c
+a-wednesday.2
