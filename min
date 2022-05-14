@@ -1,8 +1,9 @@
 #!/bin/bash
 # minimal script for testing stuff
-recDir=~/Recordings
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-thisAuth=$(python3 $thisDir/get.auth.py)
-tmp=~/tmp/zoom
-meetingID=i4nBVQ5cSMCTh43Ohv59BA==
-
+getAuth()
+{
+    thisAuth=$(get.auth.sh)
+}
+tmp=~/tmp/wa
+getAuth
