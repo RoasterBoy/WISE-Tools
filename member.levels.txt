@@ -1,0 +1,8 @@
+785593	Spring
+785594	Honorary
+785595	Fall
+785596	Full-Year
+1012069	Admin
+1051266	Summeri
+1195414	Instructor
+1213195	Emerit

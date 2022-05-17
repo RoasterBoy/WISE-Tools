@@ -1,16 +1,23 @@
 #!/bin/bash
-# TODO Parse options to the `zoom` command
+### TODO Parse options to the `zoom` command
+#
+### TODO Figure out what to do when there are multiple recordings on the same day
+#
 ## TIL
 ## 1/12/21
 ## When we get this error, it means this
 ## "The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256"
 ## There's a problem with the Zoom Secret in .bashrc
 ##
-
+### Use zmtmp system variable to set location of \$tmp
+### Use zmarchive system variable to set location of \$recDir
+trap "rm -vf  hosts.json cadaver.put " EXIT
+# Keeping this.* for now
 set -e
-start_time="$(date -u +%s)"
+SECONDS=0
 simple=false
 download=false
+init=true
 help()
 {
     thisScript=$(which "$0")
@@ -36,19 +43,24 @@ die()
 setup()
 {
     rptType=$1
-    thisAuth=$(python $thisDir/get.auth.py)
+    thisAuth=$(python3 $thisDir/get.auth.py)
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
-    HTMLFile=$tmp/$rptType.html
+    HTMLFile=$tmp/$rptFile
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
-	echo "<h2>$rptTitle</h2>" > "$HTMLFile"
+	echo "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
+	echo "<style>body {margin-left: 30px;}</style>" >> $HTMLFile
+	echo "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
+	echo "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
+	echo "<h2>$rptTitle</h2>" >> "$HTMLFile"
 	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
-	if [ -v "$thisNote" ]; then
+	if [ -n "$thisNote" ]; then
+	    msg "Got a note"
 	    echo "<b>*** $thisNote ***</b>" >> $HTMLFile
 	fi
     echo "<p>Updated: $thisDate" >> "$HTMLFile"
@@ -56,7 +68,11 @@ setup()
 }
 init()
 {
-    tmp=~/tmp/zoom
+    if [ -z ${zmtmp+x} ]; then 
+	tmp=~/tmp/"$rptType-$(date -u +%s)"
+    else
+	tmp="$zmtmp"
+    fi
     if [[ "$init" = false ]] ; then
 	msg "Skipping initialization" 
 	return
@@ -90,7 +106,8 @@ getMeetings()
     fi
 	getHosts # returns $hostList
 	while IFS='' read -r thisHost ; do
-	    msg "Working on meetings for $thisHost"
+	    # Removing some noise
+	    # msg "Working on meetings for $thisHost"
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
 		 --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
@@ -108,28 +125,33 @@ meetingBasics()
     if [[ "$getAll" = true ]]; then
 	showAll="?show_previous_occurrences=true"
     fi
-    while IFS='' read -r thisMtg ; do
-	if [[ "$init" = false ]] ; then
-	    msg "Skipping update of $rptType details"
-	else
-	    curl -s --location --request GET \
-		 'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
-		 --header 'Authorization: Bearer '"$thisAuth"\
-		 -o "$tmp"/"$thisMtg".details.json 
-	fi
-	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
-	gotTopic=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
-	if [[ $gotItem = "" ]] ; then
-#	    rm "$tmp"/"$thisMtg".details.json
-    	    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
-	else
-	    msg "Got $gotTopic"
-	    echo "$gotItem" >> "$rptTypeList" 
-	fi
-	
-    done < "$tmp"/meetings.list
-    gThisList=$rptTypeList
-#    echo "Got these: \$gThisList, $gThisList and \$rptTypeList, $rptTypeList"
+    if compgen -G "/tmp/someFiles*" > /dev/null; then
+	while IFS='' read -r thisMtg ; do
+	    if [[ "$init" = false ]] ; then
+		msg "Skipping update of $rptType details"
+	    else
+		curl -s --location --request GET \
+		     'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
+		     --header 'Authorization: Bearer '"$thisAuth"\
+		     -o "$tmp"/"$thisMtg".details.json
+	    fi
+	    gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
+	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+	    if [[ $gotTopic = "" ]] ; then
+		#	    if [[ $keepDetail = true ]]; then
+		# Leaving next line for debugging purposes
+    		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+#	    else
+#		rm "$tmp"/"$thisMtg".details.json
+#	    fi
+	    else
+		echo "$gotItem" >> "$rptTypeList" 
+	    fi
+	done < "$tmp"/meetings.list
+    else
+	msg "No $rptType files found"
+	exit
+    fi
 }
 
 doCourses()
@@ -146,7 +168,7 @@ doCourses()
 	    theseTimes=""
 	else
 	    jqFile="$thisDir"/make.course.links.jq
-	    theseTimes=$(jq -r '.occurrences[].start_time' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	    theseTimes=$(jq -r '.occurrences[] | if .status == "deleted" then  empty else .start_time  end' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
 	thisLink=$(jq -r -f "$jqFile" "$file")
 	echo "$thisLink	$theseTimes" >> "$justLinks"
@@ -160,7 +182,12 @@ doCourses()
     else
 	sort --version-sort "$justLinks" >> "$sortedLinks"
 	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
+
+	# Make sure we handle entities properly, editing in place
+	recode utf8..ascii  "$HTMLFile"
 	msg "Output file is $HTMLFile"
+	push.to.wa.sh -l $HTMLFile
+
     fi
 }
 doMtg()
@@ -168,109 +195,146 @@ doMtg()
 
     meetingBasics $tracingField
     
-    for file in "$tmp"/*.details.json;
-    do
-	### TODO
-	### We need to pick out the sessions that aren't deleted.
-	# This sequence does part of it, but now we need to work it into the main flow. 
-	# .occurrences[] | if (.status == "available") then .start_time else empty end
-	# 
-	thisTopic=$(jq '.topic' "$file")
-	msg "Deep Work on $thisTopic"
-	thisLink=$(jq -r -f "$thisDir"/make.zoom.links.jq "$file")
-	theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
-	echo "$thisLink	$theseTimes" >> "$justLinks"
-#	echo "$theseTimes	$thisLink" >> "$justLinks"
-    done
-
-    sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
-    gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
-    sed -i "s/  / /g" $HTMLFile
+    if compgen -G "$tmp"/*.details.json;
+    then
+	for file in "$tmp"/*.details.json;
+	do
+	    thisTopic=$(jq '.topic' "$file")
+	    msg "Deep Work on $thisTopic"
+	    thisURL=$(jq -r '.registration_url' $file)
+	    if [  $thisURL = "null" ]; then
+		thisURL=$(jq -r '.join_url' $file)
+	    fi
+	    echo $thisURL
+	    ### TODO do something reasonable if there is no telephone number. right now, it kicks an error 
+	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
+	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
+	    echo "$thisLink	$theseTimes" >> "$justLinks"
+	done
+	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
+	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
+	sed -i "s/  / /g" $HTMLFile
+	sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+	else
+	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
+    fi
     msg "HTML Link file is $HTMLFile"
+    push.to.wa.sh -l $HTMLFile
 }
+dblEncode()
+{
+    echo $1
+    that=$(urlencode $1)
+    echo $that
+    other=$(urlencode $that)
+    echo $other
+}
+patchRecordings()
+{
+    thisMtg=$1
+    curl -s --request PATCH \
+	 -H "Content-Type: application/json" \
+	 -d '{"viewer_download": true}' \
+         --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/settings' \
+         --header 'authorization: Bearer '"$thisAuth" > $tmp/$thisMtg.update.txt
+    }
 doRecordings()
 {
-    recDir=~/Recordings
+    if [ -z ${zmarchive+x} ]; then 
+	recDir=/archives/Recordings
+    else
+	recDir="$zmarchive"
+    fi
     msg "Geting recordings for $trackingField"
     since=$(date +%Y-%m-%d -d "30 days ago")
 #    since="2021-02-01"
 
     curl -s --request GET \
 	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=150&from='$since'&type=past' \
-	 --header 'authorization: Bearer '"$thisAuth" > this.json
-    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' this.json > this.tsv
-     while IFS='	' read -r thisTime thisUUID thisTopic ; do
-	 #    echo "This is the UUID $thisUUID"
+	 --header 'authorization: Bearer '"$thisAuth" -o $tmp/this.json
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' $tmp/this.json > $tmp/this.tsv
+
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | .id ' $tmp/this.json > $tmp/IDs.txt
+    while IFS='' read -r thisMtg;
+    do
+	patchRecordings $thisMtg
+    done < $tmp/IDs.txt
+
+    while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 i=$((i+1))
+	 dblEncode $thisUUID
 	 curl -s --request GET \
 	      --header 'authorization: Bearer '"$thisAuth" \
-	      --url 'https://api.zoom.us/v2/meetings/'"$thisUUID"'/recordings' > $i.json
-	 code=$(jq '.code' $i.json)
+	       --url 'https://api.zoom.us/v2/meetings/'"$other"'/recordings' > $tmp/$i.json
+	 code=$(jq '.code' $tmp/$i.json)
 	 if [[ $code == "null" ]]; then 
-	     jq -r ' select(. != .code) | [ (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url),.topic] | @tsv' $i.json > $i.tsv
-	     dlFile=$(awk -F'\t' '{print $3}' $i.tsv)
-	     recFile=$(awk -F'\t' '{gsub(/ |\./,"-",$1);printf "'%.*s'-", 10, $1; print strftime("%Y-%m-%d-%H-%M", $2)".mp4"}' $i.tsv )
-	     cat $i.tsv >> $justLinks
+	     jq -r ' select(. != .code) | [ (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url),.topic] | @tsv' $tmp/$i.json > $tmp/$i.tsv
+	     dlFile=$(awk -F'\t' '{print $3}' $tmp/$i.tsv)
+	     # Build file name from Course ID and date of recording
+	     if [[ $trackingField = "Course" ]];
+		then 
+		    recFile=$(gawk -F'\t' 'match($4,/([A-D,S][0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
+	     else
+		 recFile=$(gawk -F'\t' 'match($4,/(\w*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
+		 
+		 echo $recFile
+	     fi
+	     cat $tmp/$i.tsv >> $justLinks
 
 	     getParticipants $thisUUID "$recFile"
-	     
-	     # Next we need to decide if we're going to do downloads or not.
-	     # For now, it's commented out.
-	     #   if [[ $download ]]; then
+	     rptParticipants "$other"
+	     # Doing downloads. 
 
-	     if [ ! -f "$recDir/recFile" ]; then
-		 #		 touch $recDir/$recFile
-		 msg "Would be doing downloads here."
-		 #	wget -nv $dlFile -O $recDir/$recFile
-		 #	echo "Touching $recDir/recFile"
+	     ### TODO check if there's enough space before downloading. Exit with message and ?email
+	     ### TODO Backup archives to OneDrive, Dropbox
+	     if [ -e "$recDir/$recFile" ]; then
+		 msg "No need to download $recDir/$recFile"
+	     else
+		 if [ "$doArchive" == true ]; then
+		     msg "Downloading $recDir/$recFile ..."
+		     wget -q $dlFile -O $recDir/$recFile
+		 fi
 	     fi
-	     #   fi
 	 fi
-     done < this.tsv
-     echo "User,Join Time,Location,Network Type,Microphone,Camera,Speaker, Version, IP" > "$tmp"/participants.csv
-     rptParticipants
-     sort -r "$justLinks" > "$sortedLinks"
-     gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
-     msg "Output file is $HTMLFile"
-}
-rptParticipants()
-{
-    for part in "$tmp"/*participants.json;
-    do
-	jq -r -f "$thisDir"/get.participant.detail.jq "$part" >> "$tmp"/participants.csv
-    done
-    msg "Participants' file is $tmp/partcipants.xlsx"
-    ssconvert "$tmp"/participants.csv "$tmp"/participants.xlsx    
+     done < $tmp/this.tsv
 
+	if [ -s $justLinks ]; then 
+	    sort -r "$justLinks" > "$sortedLinks"
+	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
+	   else
+	       echo "<p>No recordings for $trackingField at this time" >> $HTMLFile
+	fi
+	    msg "Output file is $HTMLFile"
+	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+	    push.to.wa.sh -t "$tmp" -l $HTMLFile
 }
 getParticipants()
 {
+    #
+    ### TODO Needs fixing. See participants  script
+    #
+    partFile=$other.participants
     partMtg="$1"
     local thisFile="$2"
     msg "Getting participants for $partMtg"
-    #
     curl -s --location --request GET \
-	 'https://api.zoom.us/v2/metrics/meetings/'"$partMtg"'/participants?type=past' \
+	 'https://api.zoom.us/v2/metrics/meetings/'"$partMtg"'/participants?type=past&page_size=200' \
 	 --header 'Authorization: Bearer '"$thisAuth" \
-	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o "$tmp"/"$thisFile".participants.json
-#    exit
+	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o "$tmp"/"$partFile".json
 
 }
-downloadRecordings()
+rptParticipants()
 {
-    # TODO Put the recordings in a shared space (Dropbox/WISE/Recordings/"
-    recDir=~/Recordings
-    mkdir -p "$recDir"
-    while IFS='' read -r thisItem; do
-	jq -r --arg ID "$thisItem"  -f "$thisDir"/get.download.links.jq "$tmp"/big.json >> "$downloadLinks"
-    done < "$gThisList"
-    while IFS='' read -r thisItem; do
-	thisFile=$(echo $thisItem | awk  '{printf "%s-%s.MP4\n", $1, $2}')
-	downloadUrl=$(echo $thisItem | awk  '{print $3}')
-	if [ ! -f $recDir/$thisFile ]; then
-	    wget  --content-disposition -v "$downloadUrl" -O  $recDir/$thisFile
-	fi
-    done < "$downloadLinks"
+    local thisSession=${1%.mp4}.participants
+#     for part in "$tmp"/*participants.json;
+    #     do
+	 thisCSV=$thisSession.csv
+    jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession".json > "$tmp"/"$thisCSV"
+#     done
+	 sort -u -t, -k1,1 $tmp/$thisCSV -o $tmp/$thisCSV
+	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisCSV"
+	 msg "Participants' file is $tmp/"$thisSession".xlsx"
+	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
 }
 doParticipation()
 {
@@ -293,7 +357,7 @@ doParticipation()
 }
 
 
-while getopts "n:dr:Pt:nShvV" opt; do
+while getopts "aKn:dr:Pt:nShvV" opt; do
     shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -301,12 +365,19 @@ while getopts "n:dr:Pt:nShvV" opt; do
     thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     awkDir=$thisDir/awk
     jqDir=$thisDir/jq
-    #
     case ${opt} in
+	a )
+	    ### -a Archive recordings. Useful only with -r; ignored with other options.
+	    doArchive=true
+	    ;;
+	K )
+	    ### -K keep temporary json meeting files (for debugging)
+	    keepDetails=true
+	    ;;
 	d )
 	    ### -d Download recordings
-	    # TODO: make this only valid with -r
-	    download=true
+	    ### TODO: make this only valid with -r
+#	    download=true
 	    ;;
 	n )
 	    ### -n "Add note to the start of the report page. Must be quoted string"
@@ -323,24 +394,35 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Course"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=CourseRecordings.html
 		;;
 		event*)
 		    ###        Events
 		    trackingField="Event"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=EventRecordings.html
 		    ;;
 		committee*)
 		    ###        Committee
 		    trackingField="Committee Meeting"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=CommitteeRecordings.html
 		    ;;
 		training*)
 		    ###        Training
 		    trackingField="Training"
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
+		    rptFile=TrainingRecordings.html				    
+		    ;;
+		sig**)
+		    ###        SIGs
+		    trackingField="SIG"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=SIGRecordings.html				    
 		    ;;
 		* )
 		    echo "%% Invalid tracking field for recordngs : $OPTARG"
@@ -373,12 +455,24 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    rptTitle="Zoom Links for Courses"
 		    awkFile=$awkDir/zoom.courses.awk
 		    cmd=Courses
+		    rptFile=Courses.html
+		    rptType=Courses
+		;;
+		summer*)
+		    ###        Summer 
+		    trackingField="Summer"
+		    rptTitle="Zoom Links for Summer Courses"
+		    awkFile=$awkDir/zoom.courses.awk
+		    cmd=Courses
+		    rptFile=Summer.Courses.html
+		    rptType=Courses
 		;;
 		training)
-		    ###        Committees
+		    ###        Training
 		    trackingField="Training"
 		    rptTitle="Zoom Links for Training Sessions"
 		    cmd=Mtg
+		    rptFile=Training.html
 		    awkFile=$awkDir/zoom.events.awk
 		    rptType=Training
 		    ;;
@@ -387,6 +481,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    trackingField="Committee Meeting"
 		    rptTitle="Zoom Links for Committee Meetings"
 		    cmd=Mtg
+		    rptFile=Committee.html
 		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=Committees
 		    ;;
@@ -396,6 +491,8 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    rptTitle="Zoom Links for Events"
 		    awkFile=$awkDir/zoom.events.awk
 		    cmd=Mtg
+		    rptFile=Events.html
+		    rptType=Events
 		    ;;
 		club*)
 		    ###        Clubs
@@ -404,6 +501,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    cmd=Mtg
 		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=Clubs
+		    rptFile=Clubs.html
 		    ;;
 		sig*)
 		    ###        SIG
@@ -412,6 +510,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    cmd=Mtg
 		    awkFile=$awkDir/zoom.clubs.awk
 		    rptType=SIG
+		    rptFile=SIGs.html
 		    ;;
 		group*)
 		    ###        Group
@@ -420,6 +519,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 		    awkFile=$awkDir/zoom.clubs.awk
 		    cmd=Mtg
 		    rptType=group
+		    rptFile=Groups.html
 		    ;;		
 		* )
 		    echo "%% Invalid meeting type : $OPTARG"
@@ -445,6 +545,7 @@ while getopts "n:dr:Pt:nShvV" opt; do
 	    ;;
     esac
 done
+#
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
@@ -453,6 +554,4 @@ if [[ -z $cmd ]]; then
 fi
 do$cmd "$rptType"
 #
-end_time=$(date -u +%s)
-elapsed=$((end_time-start_time))
-msg "Elapsed time: $elapsed seconds"
+msg "Elapsed time: $SECONDS"

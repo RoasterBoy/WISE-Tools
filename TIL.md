@@ -59,7 +59,18 @@ We can only download the past six months of data. (Go to page, click Insights, a
 Install XQuartz, mucked around with the ssh server, and now seem to have something working.
 Emacs runs in the Xwindows environment, which has its own configuration. We'll figure this out eventually.
 
+<<<<<<< HEAD
 # Wild Apricot membership fields and attachments
 The plan is to create a script that creates class schedules for each member. To make the schedule available to the member with and without emailing it to them:
 1. Add a membership field in WA. This turns out not to work because you can only enter plain text, no links.
 1. Add an attachment field in WA using HTML. This is ok because clicking the link opens a new tab where the member can view and print the file. This is easier than creating a PDF file.
+=======
+# Course Evaluations
+We don't have a current way to download evaluation results from Google Drive to AWS. As a result, the ```evals``` script needs to run on WSL.
+
+# Stuff about JSON
+Just some notes to remember
+```jq '.topic, (.recording_files[] | select(.file_type == "MP4") |\
+      [.recording_start, .play_url, .download_url] )' 8.json | jq -s '.'
+```
+>>>>>>> ae733b785b5d1d0d15da21ba8e79a54a54db09d7
