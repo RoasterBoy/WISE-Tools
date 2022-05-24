@@ -1,7 +1,11 @@
 #!/bin/bash
+###
 ### TODO Parse options to the `zoom` command
-#
 ### TODO Figure out what to do when there are multiple recordings on the same day
+### TODO Add -since parameter to fetch more than 30 days of recordings
+### TODO Do something reasonsble when there are no courses. Right now, script fails
+### TODO Document theory of operations, how this works.
+### 
 #
 ## TIL
 ## 1/12/21
@@ -246,7 +250,7 @@ doRecordings()
 	recDir="$zmarchive"
     fi
     msg "Geting recordings for $trackingField"
-    since=$(date +%Y-%m-%d -d "30 days ago")
+    since=$(date +%Y-%m-%d -d "40 days ago")
 #    since="2021-02-01"
 
     curl -s --request GET \
