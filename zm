@@ -1,10 +1,10 @@
 #!/bin/bash
 ###
-### TODO Parse options to the `zoom` command
-### TODO Figure out what to do when there are multiple recordings on the same day
-### TODO Add -since parameter to fetch more than 30 days of recordings
-### TODO Do something reasonsble when there are no courses. Right now, script fails
-### TODO Document theory of operations, how this works.
+## TODO Parse options to the `zoom` command
+## TODO Figure out what to do when there are multiple recordings on the same day
+## TODO Add -since parameter to fetch more than 30 days of recordings
+## TODO Do something reasonsble when there are no courses. Right now, script fails
+## TODO Document theory of operations, how this works.
 ### 
 #
 ## TIL
@@ -26,6 +26,13 @@ help()
 {
     thisScript=$(which "$0")
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
+    exit
+}
+
+todo()
+{
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*## TODO ?//;T;p' "$thisScript"
     exit
 }
 msg()
@@ -210,7 +217,7 @@ doMtg()
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
 	    echo $thisURL
-	    ### TODO do something reasonable if there is no telephone number. right now, it kicks an error 
+	    ## TODO do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
@@ -289,8 +296,8 @@ doRecordings()
 	     rptParticipants "$other"
 	     # Doing downloads. 
 
-	     ### TODO check if there's enough space before downloading. Exit with message and ?email
-	     ### TODO Backup archives to OneDrive, Dropbox
+	     ## TODO check if there's enough space before downloading. Exit with message and ?email
+	     ## TODO Backup archives to OneDrive, Dropbox
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
@@ -315,7 +322,7 @@ doRecordings()
 getParticipants()
 {
     #
-    ### TODO Needs fixing. See participants  script
+    ## TODO Needs fixing. See participants  script
     #
     partFile=$other.participants
     partMtg="$1"
@@ -361,7 +368,7 @@ doParticipation()
 }
 
 
-while getopts "aKn:dr:Pt:nShvV" opt; do
+while getopts "aKn:dr:Pt:TnShvV" opt; do
     shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -380,7 +387,7 @@ while getopts "aKn:dr:Pt:nShvV" opt; do
 	    ;;
 	d )
 	    ### -d Download recordings
-	    ### TODO: make this only valid with -r
+	    ## TODO: make the 'd' option only valid with -r
 #	    download=true
 	    ;;
 	n )
@@ -445,6 +452,11 @@ while getopts "aKn:dr:Pt:nShvV" opt; do
 	    trackingField="Course"
 	    rptTitle="Participation for Courses"
 	    cmd=Participation
+	    ;;
+	T )
+	    ### Displays TODO items
+	    #
+	    todo
 	    ;;
 	t )
 	    ### -t Zoom meeting type
