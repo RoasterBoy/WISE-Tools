@@ -1,10 +1,12 @@
 #!/bin/bash
 ###
-## TODO Parse options to the `zoom` command
-## TODO Figure out what to do when there are multiple recordings on the same day
-## TODO Add -since parameter to fetch more than 30 days of recordings
-## TODO Do something reasonsble when there are no courses. Right now, script fails
-## TODO Document theory of operations, how this works.
+## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
+## TODO # And this: https://miller.readthedocs.io/en/latest/
+## TODO # Parse options to the `zoom` command
+## TODO # Figure out what to do when there are multiple recordings on the same day
+## TODO # Add -since parameter to fetch more than 30 days of recordings
+## TODO # Do something reasonsble when there are no courses. Right now, script fails
+## TODO # Document theory of operations, how this works.
 ### 
 #
 ## TIL
@@ -217,7 +219,7 @@ doMtg()
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
 	    echo $thisURL
-	    ## TODO do something reasonable if there is no telephone number. right now, it kicks an error 
+	    ## TODO # do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
@@ -296,8 +298,8 @@ doRecordings()
 	     rptParticipants "$other"
 	     # Doing downloads. 
 
-	     ## TODO check if there's enough space before downloading. Exit with message and ?email
-	     ## TODO Backup archives to OneDrive, Dropbox
+	     ## TODO # check if there's enough space before downloading. Exit with message and ?email
+	     ## TODO # Backup archives to OneDrive, Dropbox
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
@@ -322,7 +324,7 @@ doRecordings()
 getParticipants()
 {
     #
-    ## TODO Needs fixing. See participants  script
+    ## TODO # Needs fixing. See participants  script
     #
     partFile=$other.participants
     partMtg="$1"
