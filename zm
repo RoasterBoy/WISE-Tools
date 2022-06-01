@@ -371,7 +371,7 @@ doParticipation()
 
 
 while getopts "aKn:dr:Pt:TnShvV" opt; do
-    shopt -s nocasematch
+#    shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
     #
@@ -456,7 +456,7 @@ while getopts "aKn:dr:Pt:TnShvV" opt; do
 	    cmd=Participation
 	    ;;
 	T )
-	    ### Displays TODO items
+	    ### -T Displays TODO items
 	    #
 	    todo
 	    ;;
