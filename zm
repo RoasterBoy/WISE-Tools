@@ -430,6 +430,13 @@ while getopts "aKn:dr:Pt:TnShvV" opt; do
 		    cmd=Recordings
 		    rptFile=TrainingRecordings.html				    
 		    ;;
+		summer*)
+		    ###        Summer
+		    trackingField="Summer"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=SummerRecordings.html				    
+		    ;;
 		sig**)
 		    ###        SIGs
 		    trackingField="SIG"
