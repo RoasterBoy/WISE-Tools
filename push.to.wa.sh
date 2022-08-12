@@ -11,7 +11,7 @@ createPutFile()
     printf "%s\n" "cd $thisDir" >> $thisPutFile
     for f in $thisFile; do
 	thisFile=$(basename $f)
-	printf "%s\n" "put $f $thisFile"  >> $thisPutFile
+	printf "%s\n" "put $f "  >> $thisPutFile
         done
     printf "%s\n" "exit" >> $thisPutFile
 }
@@ -44,8 +44,9 @@ while getopts "b:l:t:w:c:h" opt; do
 	    thisFile=$OPTARG
 	    thisDir="Links"
 	    ;;
-	t) # tmp directory
-	    tmp=$OPTARG
+	t) # tools directory
+	    thisFile=$OPTARG
+	    thisDir="tools"
 	    ;;
 	w) # Other stuff
 	    thisFile=$OPTARG
