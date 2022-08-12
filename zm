@@ -125,29 +125,33 @@ meetingBasics()
     if [[ "$getAll" = true ]]; then
 	showAll="?show_previous_occurrences=true"
     fi
-    while IFS='' read -r thisMtg ; do
-	if [[ "$init" = false ]] ; then
-	    msg "Skipping update of $rptType details"
-	else
-	    curl -s --location --request GET \
-		 'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
-		 --header 'Authorization: Bearer '"$thisAuth"\
-		 -o "$tmp"/"$thisMtg".details.json
-	fi
-	gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
-	gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
-	if [[ $gotTopic = "" ]] ; then
-#	    if [[ $keepDetail = true ]]; then
+    if compgen -G "/tmp/someFiles*" > /dev/null; then
+	while IFS='' read -r thisMtg ; do
+	    if [[ "$init" = false ]] ; then
+		msg "Skipping update of $rptType details"
+	    else
+		curl -s --location --request GET \
+		     'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
+		     --header 'Authorization: Bearer '"$thisAuth"\
+		     -o "$tmp"/"$thisMtg".details.json
+	    fi
+	    gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
+	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+	    if [[ $gotTopic = "" ]] ; then
+		#	    if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
     		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 #	    else
 #		rm "$tmp"/"$thisMtg".details.json
 #	    fi
-	else
-	    echo "$gotItem" >> "$rptTypeList" 
-	fi
-    done < "$tmp"/meetings.list
-    gThisList=$rptTypeList
+	    else
+		echo "$gotItem" >> "$rptTypeList" 
+	    fi
+	done < "$tmp"/meetings.list
+    else
+	msg "No $rptType files found"
+	exit
+    fi
 }
 
 doCourses()
@@ -286,7 +290,7 @@ doRecordings()
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
-		 if [ $doArchive == true ]; then
+		 if [ "$doArchive" == true ]; then
 		     msg "Downloading $recDir/$recFile ..."
 		     wget -q $dlFile -O $recDir/$recFile
 		 fi

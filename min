@@ -1,9 +1,0 @@
-#!/bin/bash
-# minimal script for testing stuff
-thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-getAuth()
-{
-    thisAuth=$(get.auth.sh)
-}
-tmp=~/tmp/wa
-getAuth

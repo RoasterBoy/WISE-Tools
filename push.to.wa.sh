@@ -28,6 +28,7 @@ getHelp()
     echo "-l  Files containing Zoom links go to Links" 
     echo "-w  Others go to Documents/website"
     echo "-c  Put files in Documents/class.assistants"
+    echo "-t  tmp directory for files" 
 }
 while getopts "b:l:t:w:c:h" opt; do
     case ${opt} in

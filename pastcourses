@@ -68,8 +68,9 @@ done  < $tmp/events.list
 }
 mungFiles ()
 {
-    # TODO
-    # This sed section needs some serious cleanup.
+    ### TODO
+    ### This sed section needs some serious cleanup.
+    ### We need to check if old files are present. If not, then give a warning that -i is needed
     # 
     echo "" > $tmp/allFiles.tsv
     echo "" > $tmp/regcount.txt
@@ -81,7 +82,7 @@ mungFiles ()
 	jq '.Details.RegistrationTypes[].CurrentRegistrantsCount' $f >> $tmp/regcount.txt
 	
     done
-	cat $tmp/allFiles.tsv | ftfy -g >  $tmp/textfile.txt
+    cat $tmp/allFiles.tsv | ftfy -g >  $tmp/textfile.txt
 	# Cleanup tags as best we can
 #
 	sed -i'.bak' "/cancelled/d" $tmp/textfile.txt
@@ -98,7 +99,8 @@ mungFiles ()
 	# Fix case for selected tags
 	sed -i'.bak' 's/Cwi/CWI/gi' $tmp/course.tags.txt
 	cp $thisDir/course.header.html $tmp/past.wise.courses.html
-	
+	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
+	echo "<p>Updated: $thisDate<p>" >> $tmp/past.wise.courses.html
 	datamash -s -g 1  collapse 2 < $tmp/course.tags.txt |
 	    sed -e  's/\t\|,\([A-D,S]\)/<li>\1/g'|\
 	    sed G |\
@@ -180,7 +182,8 @@ if [ $init = true ]; then
    echo "Getting events, putting details in $tmp"
    getFiles
 fi
-mungFiles 
+mungFiles
+push.to.wa.sh  -w $tmp/past.wise.courses.html
 end_time=$(date -u +%s)
 elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"
