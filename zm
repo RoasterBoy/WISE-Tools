@@ -18,7 +18,7 @@
 ##
 ### Use zmtmp system variable to set location of \$tmp
 ### Use zmarchive system variable to set location of \$recDir
-trap "rm -vf  hosts.json cadaver.put " EXIT
+trap "rm -vf  hosts.json " EXIT
 # Keeping this.* for now
 set -e
 SECONDS=0
@@ -31,7 +31,6 @@ help()
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
 }
-
 todo()
 {
     thisScript=$(which "$0")
@@ -97,6 +96,7 @@ init()
     rm -r "${tmp:?}"/*
     
 }
+
 getHosts()
 {
     hostList=$tmp/hosts.list
@@ -200,6 +200,7 @@ doCourses()
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
 	msg "Output file is $HTMLFile"
+	echo "<hr/>" >> $THMLFile
 	wafiles -l $HTMLFile
 
     fi
@@ -233,7 +234,9 @@ doMtg()
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
     msg "HTML Link file is $HTMLFile"
+    echo "<hr/>" >> $THMLFile
     wafiles -l $HTMLFile
+    
 }
 dblEncode()
 {
@@ -251,7 +254,7 @@ patchRecordings()
 	 -d '{"viewer_download": true}' \
          --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/settings' \
          --header 'authorization: Bearer '"$thisAuth" > $tmp/$thisMtg.update.txt
-    }
+}
 doRecordings()
 {
     if [ -z ${zmarchive+x} ]; then 
@@ -320,7 +323,9 @@ doRecordings()
 	fi
 	    msg "Output file is $HTMLFile"
 	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
-	    wafiles" -l $HTMLFile
+	    echo "<hr/>" >> $HTMLFile
+	    wafiles  -l $HTMLFile
+
 }
 getParticipants()
 {
@@ -572,6 +577,7 @@ while getopts "aKn:dr:Pt:TnShvV" opt; do
     esac
 done
 #
+echo "ok here?"
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
