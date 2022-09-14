@@ -200,7 +200,7 @@ doCourses()
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
 	msg "Output file is $HTMLFile"
-	echo "<hr/>" >> $THMLFile
+	echo "<hr/>" >> $HTMLFile
 	wafiles -l $HTMLFile
 
     fi
@@ -234,7 +234,7 @@ doMtg()
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
     msg "HTML Link file is $HTMLFile"
-    echo "<hr/>" >> $THMLFile
+    echo "<hr/>" >> $HTMLFile
     wafiles -l $HTMLFile
     
 }
