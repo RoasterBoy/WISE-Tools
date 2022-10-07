@@ -8,6 +8,8 @@
 ## TODO # Do something reasonsble when there are no courses. Right now, script fails
 ## TODO # Document theory of operations, how this works.
 ## TODO # Group recordings page by course, then date. 
+## TODO # Sort course links by date, printing only next course
+## TODO # Maybe delete working directory in \$tmp if successful? Add -K to inhbit this?
 ### 
 #
 ## TIL
