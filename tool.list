@@ -7,3 +7,5 @@ ical2json (needs npm for installation)
 sudo apt install python-is-python3
 cadaver
 recode
+# urlecode
+sudo apt-get install gridsite-clients 

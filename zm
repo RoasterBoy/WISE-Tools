@@ -7,6 +7,9 @@
 ## TODO # Add -since parameter to fetch more than 30 days of recordings
 ## TODO # Do something reasonsble when there are no courses. Right now, script fails
 ## TODO # Document theory of operations, how this works.
+## TODO # Group recordings page by course, then date. 
+## TODO # Sort course links by date, printing only next course
+## TODO # Maybe delete working directory in \$tmp if successful? Add -K to inhbit this?
 ### 
 #
 ## TIL
@@ -17,7 +20,7 @@
 ##
 ### Use zmtmp system variable to set location of \$tmp
 ### Use zmarchive system variable to set location of \$recDir
-trap "rm -vf  hosts.json cadaver.put " EXIT
+trap "rm -vf  hosts.json " EXIT
 # Keeping this.* for now
 set -e
 SECONDS=0
@@ -30,7 +33,6 @@ help()
     sed -rn 's/^\s*### ?//;T;p' "$thisScript"
     exit
 }
-
 todo()
 {
     thisScript=$(which "$0")
@@ -96,6 +98,7 @@ init()
     rm -r "${tmp:?}"/*
     
 }
+
 getHosts()
 {
     hostList=$tmp/hosts.list
@@ -199,7 +202,8 @@ doCourses()
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
 	msg "Output file is $HTMLFile"
-	push.to.wa.sh -l $HTMLFile
+	echo "<hr/>" >> $HTMLFile
+	wafiles -l $HTMLFile
 
     fi
 }
@@ -232,7 +236,9 @@ doMtg()
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
     msg "HTML Link file is $HTMLFile"
-    push.to.wa.sh -l $HTMLFile
+    echo "<hr/>" >> $HTMLFile
+    wafiles -l $HTMLFile
+    
 }
 dblEncode()
 {
@@ -250,7 +256,7 @@ patchRecordings()
 	 -d '{"viewer_download": true}' \
          --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/settings' \
          --header 'authorization: Bearer '"$thisAuth" > $tmp/$thisMtg.update.txt
-    }
+}
 doRecordings()
 {
     if [ -z ${zmarchive+x} ]; then 
@@ -259,7 +265,7 @@ doRecordings()
 	recDir="$zmarchive"
     fi
     msg "Geting recordings for $trackingField"
-    since=$(date +%Y-%m-%d -d "40 days ago")
+    since=$(date +%Y-%m-%d -d "60 days ago")
 #    since="2021-02-01"
 
     curl -s --request GET \
@@ -319,7 +325,9 @@ doRecordings()
 	fi
 	    msg "Output file is $HTMLFile"
 	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
-	    push.to.wa.sh -t "$tmp" -l $HTMLFile
+	    echo "<hr/>" >> $HTMLFile
+	    wafiles  -l $HTMLFile
+
 }
 getParticipants()
 {
@@ -429,6 +437,13 @@ while getopts "aKn:dr:Pt:TnShvV" opt; do
 		    rptTitle="$trackingField Recordings"
 		    cmd=Recordings
 		    rptFile=TrainingRecordings.html				    
+		    ;;
+		summer*)
+		    ###        Summer
+		    trackingField="Summer"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=SummerRecordings.html				    
 		    ;;
 		sig**)
 		    ###        SIGs
@@ -564,6 +579,7 @@ while getopts "aKn:dr:Pt:TnShvV" opt; do
     esac
 done
 #
+echo "ok here?"
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then

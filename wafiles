@@ -2,7 +2,8 @@
 # This script creates a cadaver.put file, allowing us to put a file on our Wild Apricot server.
 # login information is in .netrc
 #
-cd $tmp
+#cd $tmp
+
 createPutFile()
 {
     [[ -z "$thisDir" ]] && { echo "No target directory. Exiting..." ; exit 1; }
@@ -18,9 +19,11 @@ createPutFile()
 
 doit()
 {
-    cadaver --rcfile=cadaver.put
-    printf '%d\n' $?
-#    echo "We would do this here"
+#    cadaver --rcfile=cadaver.put
+    #    printf '%d\n' $?
+    curl -s --anyauth --netrc-file ~/.netrc  'https://assumptionwise.org/resources/'$thisDir/ -T $thisFile
+
+    #    echo "We would do this here"
 }
 getHelp()
 {
@@ -43,6 +46,7 @@ while getopts "b:l:t:w:c:h" opt; do
 	l) # Links
 	    thisFile=$OPTARG
 	    thisDir="Links"
+	    echo "Putting $thisFile in $thisDir"
 	    ;;
 	t) # tools directory
 	    thisFile=$OPTARG
@@ -62,5 +66,5 @@ while getopts "b:l:t:w:c:h" opt; do
     esac
     done
 
-createPutFile
+#createPutFile
 doit
