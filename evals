@@ -1,5 +1,7 @@
 #!/bin/bash
 thisParm="$@"
+mungOne()
+{
 if [ "${thisParm: -4}" == ".zip" ];
 then
     thisFile=${thisParm:25:-4}
@@ -28,3 +30,23 @@ csvcut -c 11 "$thisFile" | sed -e 's/""//g' | sed -e '/^$/d ' | sed -e 's/$/\<br
 #echo "<hr/><p>" >> "$outFile"
 #csvstat --freq -c 12 "$thisFile" | sed -e 's/["{}]//g'| sed -e 's/$/\<br\/\>/g'  >> "$outFile"
 echo "Evaluation report is $outFile"
+}
+mungAll()
+{
+    #
+    echo "In mungAll"
+}
+
+while getopts "r" opt; do
+    case ${opt} in 
+	r ) ##3 Recommended courses
+	    cmd=mungAll
+	   ;;
+	* )
+	    cmd=mungOne
+	   ;;
+    esac
+done
+
+$cmd
+
