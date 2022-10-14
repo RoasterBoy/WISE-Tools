@@ -1,5 +1,14 @@
 #!/bin/bash
 thisParm="$@"
+#
+# pattern for evaluation files
+# 
+#eval_files="WISE*.zip"
+#echo $eval_files
+#ls -l $eval_files
+
+
+# 
 mungOne()
 {
 if [ "${thisParm: -4}" == ".zip" ];
