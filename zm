@@ -26,6 +26,7 @@ set -e
 SECONDS=0
 simple=false
 download=false
+publish=true
 init=true
 help()
 {
@@ -203,7 +204,10 @@ doCourses()
 	recode utf8..ascii  "$HTMLFile"
 	msg "Output file is $HTMLFile"
 	echo "<hr/>" >> $HTMLFile
-	wafiles -l $HTMLFile
+	if $publish; 
+	   then
+	       wafiles -l $HTMLFile
+	fi
 
     fi
 }
@@ -237,7 +241,9 @@ doMtg()
     fi
     msg "HTML Link file is $HTMLFile"
     echo "<hr/>" >> $HTMLFile
-    wafiles -l $HTMLFile
+    if $publish; then
+       wafiles -l $HTMLFile
+    fi
     
 }
 dblEncode()
@@ -324,9 +330,13 @@ doRecordings()
 	       echo "<p>No recordings for $trackingField at this time" >> $HTMLFile
 	fi
 	    msg "Output file is $HTMLFile"
-	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+#	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
 	    echo "<hr/>" >> $HTMLFile
-	    wafiles  -l $HTMLFile
+	    recode utf8..ascii $HTMLFile
+	    echo $publish
+	    if $publish; then
+	       wafiles  -l $HTMLFile
+	    fi
 
 }
 getParticipants()
@@ -378,7 +388,7 @@ doParticipation()
 }
 
 
-while getopts "aKn:dr:Pt:TnShvV" opt; do
+while getopts "aKNn:dr:Pt:TnShvV" opt; do
 #    shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -403,6 +413,10 @@ while getopts "aKn:dr:Pt:TnShvV" opt; do
 	n )
 	    ### -n "Add note to the start of the report page. Must be quoted string"
 	    thisNote="$OPTARG"
+	    ;;
+	N )
+	    ### -N don't publish output; we're testing stuff.
+	    publish=false
 	    ;;
 	r )
 	    getAll=true
