@@ -1,8 +1,8 @@
 #!/bin/bash
-# This script creates a cadaver.put file, allowing us to put a file on our Wild Apricot server.
+# This script uses curl to push files to our server. 
 # login information is in .netrc
+# If it fails silently, make sure that .netrc has the proper machine name, the same as is used in the curl command.
 #
-#cd $tmp
 
 createPutFile()
 {
@@ -21,7 +21,7 @@ doit()
 {
 #    cadaver --rcfile=cadaver.put
     #    printf '%d\n' $?
-    curl -s --anyauth --netrc-file ~/.netrc  'https://assumptionwise.org/resources/'$thisDir/ -T $thisFile
+    curl -v --anyauth --netrc-file ~/.netrc  'https://assumptionwise.org/resources/'$thisDir/ -T $thisFile
 
     #    echo "We would do this here"
 }
