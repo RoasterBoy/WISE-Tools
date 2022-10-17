@@ -21,7 +21,7 @@ doit()
 {
 #    cadaver --rcfile=cadaver.put
     #    printf '%d\n' $?
-    curl -v --anyauth --netrc-file ~/.netrc  'https://assumptionwise.org/resources/'$thisDir/ -T $thisFile
+    curl -s --anyauth --netrc-file ~/.netrc  'https://assumptionwise.org/resources/'$thisDir/ -T $thisFile
 
     #    echo "We would do this here"
 }
