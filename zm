@@ -235,8 +235,7 @@ doMtg()
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
 	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
-	## TODO  "Replace sed with recode?"
-	sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
+	recode utf8..ascii  "$HTMLFile"
 	else
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
