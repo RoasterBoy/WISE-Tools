@@ -400,6 +400,10 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
     case ${opt} in
 	a )
 	    ### -a Archive recordings. Useful only with -r; ignored with other options.
+	    if [[ ! $doingRecs ]]; then
+		echo "-a only valid when you are doing recordings" 
+		exit 1
+	    fi
 	    doArchive=true
 	    ;;
 	K )
@@ -407,9 +411,11 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    keepDetails=true
 	    ;;
 	d )
-	    ### -d Download recordings
-	    ## TODO: make the 'd' option only valid with -r
-#	    download=true
+	    if [[ ! $doingRecs ]]; then
+		echo "-a only valid when you are doing recordings" 
+		exit 1
+	    fi
+	    download=true
 	    ;;
 	n )
 	    ### -n "Add note to the start of the report page. Must be quoted string"
@@ -420,7 +426,8 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    publish=false
 	    ;;
 	r )
-	    getAll=true
+	    getAll=true # Get all sessions
+	    doingRecs=true # Setting a flag to say that we're doing recordings
 	    tmpType=${OPTARG,,} # Use parameter substituion to convert $tmpType to lowercase for easier matching
 	    rptType=Recording
 	    case "$tmpType" in
@@ -587,6 +594,8 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    ### -v Set verbose mode
 	    verbose="true"
 	    ;;
+	:  ) echo "Missing option argument for -$OPTARG" >&2; exit 1
+	     ;;
 	* )
 	    echo "Invalid Option: -$OPTARG" 1>&2
 	    exit 1
