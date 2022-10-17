@@ -156,22 +156,19 @@ meetingBasics()
 	    gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	    if [[ $gotTopic = "" ]] ; then
-<<<<<<< HEAD
 		echo $keepDetail
 		if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
     		mv -v "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 	    else
-		rm -v "$tmp"/"$thisMtg".details.json
+		rm "$tmp"/"$thisMtg".details.json
 	    fi
-=======
 		if [[ $keepDetail = true ]]; then
 		    # Leaving next line for debugging purposes
     		    mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 		else
 		    rm "$tmp"/"$thisMtg".details.json
 		fi
->>>>>>> 8da467aea313d69fc144f545b793704dd86dbc94
 	    else
 		echo "$gotItem" >> "$rptTypeList" 
 	    fi
