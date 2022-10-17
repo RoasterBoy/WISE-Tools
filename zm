@@ -28,6 +28,7 @@ simple=false
 download=false
 publish=true
 init=true
+keepDetail=false
 help()
 {
     thisScript=$(which "$0")
@@ -155,12 +156,13 @@ meetingBasics()
 	    gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
 	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	    if [[ $gotTopic = "" ]] ; then
-		#	    if [[ $keepDetail = true ]]; then
+		echo $keepDetail
+		if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
-    		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
-#	    else
-#		rm "$tmp"/"$thisMtg".details.json
-#	    fi
+    		mv -v "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+	    else
+		rm -v "$tmp"/"$thisMtg".details.json
+	    fi
 	    else
 		echo "$gotItem" >> "$rptTypeList" 
 	    fi
