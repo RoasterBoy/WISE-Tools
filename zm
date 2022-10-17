@@ -226,7 +226,6 @@ doMtg()
 	    if [  $thisURL = "null" ]; then
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
-	    echo $thisURL
 	    ## TODO # do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
@@ -235,6 +234,7 @@ doMtg()
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
 	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
+	## TODO  "Replace sed with recode?"
 	sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
 	else
 	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
@@ -593,7 +593,6 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
     esac
 done
 #
-echo "ok here?"
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
