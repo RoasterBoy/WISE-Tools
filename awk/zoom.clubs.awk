@@ -11,7 +11,7 @@ BEGIN {}
     printf "<br>Meeting ID: %s", $5
     printf "<br>Password: %s", $6
     printf "<br/>%s\n", $7
-    if (length($8) > 0) {
+    if (length($8) > 4) {
 	        print "<h3>Meeting Times</h3><p>\n"
 		for(i=8; i<=NF; i++)  printf "<br>\n", system("date +%B%_3d,%_5Y\" \"%-I:%M%_3p -d "$i"") 
     }
