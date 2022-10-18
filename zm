@@ -248,11 +248,11 @@ doMtg()
 }
 dblEncode()
 {
-    echo $1
+#    echo $1
     that=$(urlencode $1)
-    echo $that
+#    echo $that
     other=$(urlencode $that)
-    echo $other
+#   echo $other
 }
 patchRecordings()
 {
@@ -280,11 +280,12 @@ doRecordings()
     jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' $tmp/this.json > $tmp/this.tsv
 
     jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | .id ' $tmp/this.json > $tmp/IDs.txt
+    msg "Getting course details" 
     while IFS='' read -r thisMtg;
     do
 	patchRecordings $thisMtg
     done < $tmp/IDs.txt
-
+    msg "Getting more course details" 
     while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 i=$((i+1))
 	 dblEncode $thisUUID
@@ -302,7 +303,7 @@ doRecordings()
 	     else
 		 recFile=$(gawk -F'\t' 'match($4,/(\w*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
 		 
-		 echo $recFile
+#		 echo $recFile
 	     fi
 	     cat $tmp/$i.tsv >> $justLinks
 
@@ -330,10 +331,8 @@ doRecordings()
 	       echo "<p>No recordings for $trackingField at this time" >> $HTMLFile
 	fi
 	    msg "Output file is $HTMLFile"
-#	    sed -ibak 's/\xE2\x80\x99/\&rsquo;/g' $HTMLFile
 	    echo "<hr/>" >> $HTMLFile
 	    recode utf8..ascii $HTMLFile
-	    echo $publish
 	    if $publish; then
 	       wafiles  -l $HTMLFile
 	    fi
