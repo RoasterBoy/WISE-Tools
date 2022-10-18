@@ -1,1 +1,1 @@
-select(.id != null) | [.topic, .join_url, (.agenda | sub( "\n"; "<br/>";"g")) , (.settings.global_dial_in_numbers[].number != null),(.id | tostring) ,.password, "Alternate hosts: " + (.settings.alternative_hosts  | gsub(";";"<br/>"))] | @tsv
+select(.id != null) | [.topic, .join_url, (.agenda | sub( "\n"; "<br/>";"g")) ,if ( .settings.global_dial_in_numbers = null) then "None" else .settings.global_dial_in_numbers[].Number end,(.id | tostring) ,.password, "Alternate hosts: " + (.settings.alternative_hosts  | gsub(";";"<br/>"))] | @tsv
