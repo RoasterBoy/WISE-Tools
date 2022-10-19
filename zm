@@ -194,7 +194,7 @@ doCourses()
     msg "Initializing $sortedLinks"
     :>"$sortedLinks"
     if [[ $simple = "true" ]]; then
-	printf "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
+	printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
 	sort --version-sort "$justLinks" >> "$sortedLinks"
 	msg "Sorted links are in $sortedLinks"
     else
@@ -227,9 +227,8 @@ doMtg()
 	    if [  $thisURL = "null" ]; then
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
-	    ## TODO # do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
-	    theseTimes=$(jq -r -f "$thisDir"/make.course.links.jq "$file")
+	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
 	    printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
 	done
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
@@ -239,7 +238,7 @@ doMtg()
 	else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
-    msg "HTML Link file is $HTMLFile"
+    echo "HTML Link file is $HTMLFile"
     printf "%s\n" "<hr/>" >> $HTMLFile
     if $publish; then
        wafiles -l $HTMLFile
