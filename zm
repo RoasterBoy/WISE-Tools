@@ -20,7 +20,7 @@
 ##
 ### Use zmtmp system variable to set location of \$tmp
 ### Use zmarchive system variable to set location of \$recDir
-trap "rm -vf  hosts.json " EXIT
+trap "rm -f  hosts.json " EXIT
 # Keeping this.* for now
 set -e
 SECONDS=0
@@ -158,7 +158,7 @@ meetingBasics()
 	    if [[ $gotTopic = "" ]] ; then
 		if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
-    		mv -v "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+    		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
 	    else
 		rm "$tmp"/"$thisMtg".details.json
 	    fi
@@ -217,7 +217,7 @@ doMtg()
 
     meetingBasics $tracingField
     
-    if compgen -G "$tmp"/*.details.json;
+    if compgen -G "$tmp"/*.details.json > /dev/null
     then
 	for file in "$tmp"/*.details.json;
 	do
@@ -229,7 +229,7 @@ doMtg()
 	    fi
 	    ## TODO # do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
-	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
+	    theseTimes=$(jq -r -f "$thisDir"/make.course.links.jq "$file")
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
 	done
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
@@ -561,7 +561,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 		    trackingField="SIG"
 		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
 		    cmd=Mtg
-		    awkFile=$awkDir/zoom.clubs.awk
+		    awkFile=$awkDir/zoom.courses.awk
 		    rptType=SIG
 		    rptFile=SIGs.html
 		    ;;
