@@ -46,7 +46,7 @@ msg()
     if [  "$verbose" = true ];
     then
 	msgString=$*
-	echo "%% $msgString"
+	printf "%s\n" "%% $msgString"
     fi
 }
 die()
@@ -54,7 +54,7 @@ die()
     if [ "$Verbose" = true ];
     then
 	msgString=$*
-	echo "%% $msgString"
+	printf "%s\n" "%% $msgString"
     fi
 }
 setup()
@@ -70,17 +70,17 @@ setup()
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
-	echo "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
-	echo "<style>body {margin-left: 30px;}</style>" >> $HTMLFile
-	echo "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
-	echo "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
-	echo "<h2>$rptTitle</h2>" >> "$HTMLFile"
+	printf "%s\n" "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
+	printf "%s\n" "<style>body {margin-left: 30px;}</style>" >> $HTMLFile
+	printf "%s\n" "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
+	printf "%s\n" "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
+	printf "%s\n" "<h2>$rptTitle</h2>" >> "$HTMLFile"
 	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
 	if [ -n "$thisNote" ]; then
 	    msg "Got a note"
-	    echo "<b>*** $thisNote ***</b>" >> $HTMLFile
+	    printf "%s\n" "<b>*** $thisNote ***</b>" >> $HTMLFile
 	fi
-    echo "<p>Updated: $thisDate" >> "$HTMLFile"
+    printf "%s\n" "<p>Updated: $thisDate" >> "$HTMLFile"
     fi
 }
 init()
@@ -163,7 +163,7 @@ meetingBasics()
 		rm "$tmp"/"$thisMtg".details.json
 	    fi
 	    else
-		echo "$gotItem" >> "$rptTypeList" 
+		printf "%s\n" "$gotItem" >> "$rptTypeList" 
 	    fi
 	done < "$tmp"/meetings.list
     else
@@ -189,7 +189,7 @@ doCourses()
 	    theseTimes=$(jq -r '.occurrences[] | if .status == "deleted" then  empty else .start_time  end' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
 	thisLink=$(jq -r -f "$jqFile" "$file")
-	echo "$thisLink	$theseTimes" >> "$justLinks"
+	printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
     done
     msg "Initializing $sortedLinks"
     :>"$sortedLinks"
@@ -203,8 +203,8 @@ doCourses()
 
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
-	msg "Output file is $HTMLFile"
-	echo "<hr/>" >> $HTMLFile
+	printf "### %s\n" "Output file is $HTMLFile"
+	printf "%s\n" "<hr/>" >> $HTMLFile
 	if $publish; 
 	   then
 	       wafiles -l $HTMLFile
@@ -230,17 +230,17 @@ doMtg()
 	    ## TODO # do something reasonable if there is no telephone number. right now, it kicks an error 
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
 	    theseTimes=$(jq -r -f "$thisDir"/make.course.links.jq "$file")
-	    echo "$thisLink	$theseTimes" >> "$justLinks"
+	    printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
 	done
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
 	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
 	recode utf8..ascii  "$HTMLFile"
 	else
-	echo "<p>No "$trackingField"s scheduled." >> $HTMLFile
+	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
     msg "HTML Link file is $HTMLFile"
-    echo "<hr/>" >> $HTMLFile
+    printf "%s\n" "<hr/>" >> $HTMLFile
     if $publish; then
        wafiles -l $HTMLFile
     fi
@@ -328,10 +328,10 @@ doRecordings()
 	    sort -r "$justLinks" > "$sortedLinks"
 	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
 	   else
-	       echo "<p>No recordings for $trackingField at this time" >> $HTMLFile
+	       printf "%s\n" "<p>No recordings for $trackingField at this time" >> $HTMLFile
 	fi
-	    msg "Output file is $HTMLFile"
-	    echo "<hr/>" >> $HTMLFile
+	printf "### %s\n" "Output file is $HTMLFile"
+	    printf "%s\n" "<hr/>" >> $HTMLFile
 	    recode utf8..ascii $HTMLFile
 	    if $publish; then
 	       wafiles  -l $HTMLFile
@@ -399,7 +399,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	a )
 	    ### -a Archive recordings. Useful only with -r; ignored with other options.
 	    if [[ ! $doingRecs ]]; then
-		echo "-a only valid when you are doing recordings" 
+		printf "%s\n" "-a only valid when you are doing recordings" 
 		exit 1
 	    fi
 	    doArchive=true
@@ -410,7 +410,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    ;;
 	d )
 	    if [[ ! $doingRecs ]]; then
-		echo "-a only valid when you are doing recordings" 
+		printf "%s\n" "-a only valid when you are doing recordings" 
 		exit 1
 	    fi
 	    download=true
@@ -473,7 +473,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 		    rptFile=SIGRecordings.html				    
 		    ;;
 		* )
-		    echo "%% Invalid tracking field for recordngs : $OPTARG"
+		    printf "%s\n" "%% Invalid tracking field for recordngs : $OPTARG"
 		    help
 		    ;;
 	    esac
@@ -575,7 +575,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 		    rptFile=Groups.html
 		    ;;		
 		* )
-		    echo "%% Invalid meeting type : $OPTARG"
+		    printf "%s\n" "%% Invalid meeting type : $OPTARG"
 		    help
 		    ;;
 	    esac
@@ -592,10 +592,10 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    ### -v Set verbose mode
 	    verbose="true"
 	    ;;
-	:  ) echo "Missing option argument for -$OPTARG" >&2; exit 1
+	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
 	* )
-	    echo "Invalid Option: -$OPTARG" 1>&2
+	    printf "%s\n" "Invalid Option: -$OPTARG" 1>&2
 	    exit 1
 	    ;;
     esac
@@ -604,7 +604,7 @@ done
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
-    echo "%% *Error* - Missing meeting type or recording"
+    printf "%s\n" "%% *Error* - Missing meeting type or recording"
     help
 fi
 do$cmd "$rptType"
