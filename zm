@@ -191,7 +191,7 @@ doCourses()
 	thisLink=$(jq -r -f "$jqFile" "$file")
 	printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
     done
-    msg "Initializing $sortedLinks"
+
     :>"$sortedLinks"
     if [[ $simple = "true" ]]; then
 	printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
