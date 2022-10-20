@@ -1,2 +1,0 @@
-for i in *.csv ; do csv2tab *.csv ; done > tmp.csv
-sort tmp.csv | uniq -c
