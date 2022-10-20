@@ -228,8 +228,10 @@ doMtg()
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
 	    ## TODO # do something reasonable if there is no telephone number. right now, it kicks an error 
-	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
-	    theseTimes=$(jq -r -f "$thisDir"/make.course.links.jq "$file")
+	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
+#	    theseTimes=$(jq -r -f "$thisDir"/make.course.links.jq "$file")
+	    #
+	    theseTimes=$(jq -r '.occurrences[] | if .status == "deleted" then  empty else .start_time  end' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	    echo "$thisLink	$theseTimes" >> "$justLinks"
 	done
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"

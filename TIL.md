@@ -74,3 +74,20 @@ Just some notes to remember
       [.recording_start, .play_url, .download_url] )' 8.json | jq -s '.'
 ```
 >>>>>>> ae733b785b5d1d0d15da21ba8e79a54a54db09d7
+
+# Errors
+When we encounter stuff such as
+```
++ gawk -F '\t' -f /home/ubuntu/WISE-Tools/awk/zoom.clubs.awk /home/ubuntu/tmp/Committees-1666264083/sorted.links.tsv
+date: extra operand ‘Curriculum’
+Try 'date --help' for more information.
+date: invalid date ‘https://assumptionwise.zoom.us/j/97548754143?pwd=NmcwT2hML253N3d3OUJLNEpiaG9iQT09’
+date: option requires an argument -- 'd'
+Try 'date --help' for more information.
+date: extra operand ‘6468769923’
+Try 'date --help' for more information.
+date: extra operand ‘ID:’
+Try 'date --help' for more information.
+date: invalid date ‘193646
+```
+it means that we had a problem with a line break between items in sorted.links.tsv
