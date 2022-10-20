@@ -186,7 +186,7 @@ doCourses()
 	    theseTimes=""
 	else
 	    jqFile="$thisDir"/make.course.links.jq
-	    theseTimes=$(jq -r  -f $thisDir/get.times  "$file")
+	    theseTimes=$(jq -r  -f $thisDir/get.times.jq  "$file")
     #| xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
 	thisLink=$(jq -r -f "$jqFile" "$file")
@@ -395,6 +395,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
     # Setting up some variables that we'll use for paths and files
     #
     thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    echo "$thisDir is \thisDir"
     awkDir=$thisDir/awk
     jqDir=$thisDir/jq
     case ${opt} in
