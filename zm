@@ -186,7 +186,8 @@ doCourses()
 	    theseTimes=""
 	else
 	    jqFile="$thisDir"/make.course.links.jq
-	    theseTimes=$(jq -r '.occurrences[] | if .status == "deleted" then  empty else .start_time  end' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
+	    theseTimes=$(jq -r  -f $thisDir/get.times  "$file")
+    #| xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
 	thisLink=$(jq -r -f "$jqFile" "$file")
 	printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
@@ -228,12 +229,8 @@ doMtg()
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
 	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
-#	    theseTimes=$(jq -r -f "$thisDir"/make.course.links.jq "$file")
-	    #
-	    theseTimes=$(jq -r '.occurrences[] | if .status == "deleted" then  empty else .start_time  end' "$file" | xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
-	    echo "$thisLink	$theseTimes" >> "$justLinks"
-	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.registration.links.jq "$file")
-	    theseTimes=$(jq -r -f "$thisDir"/get.times.jq "$file")
+#	    #
+	    theseTimes=$(jq -rf $thisDir/get.times.jq "$file")
 	    printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
 
 	done
