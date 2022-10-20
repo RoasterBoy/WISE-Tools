@@ -1,3 +1,0 @@
-def mungDate: "https://assumptioncollegewise.wildapricot.org/event-" as $orgUrl | .[] | "<h1><a href=\"" + $orgUrl + (.Id | tostring) + "\">" + .Name + "</a></h1>", "Cost<b>: $"+(.Details.RegistrationTypes[0].BasePrice |tostring) +"</b><br/>" , .Location + "<br/>",
-if .Sessions[0]?    then  ([(.Sessions[] |.StartDate)| strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %d,") ]| join(" ") | rtrimstr(","))    else  (.StartDate| strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%A, %B %d, %-I:%M %p"))    end
-def getTimes: if .occurrences == null  then .start_time else [(.occurrences[].start_time) ] | @tsv end
