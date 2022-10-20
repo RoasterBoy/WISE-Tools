@@ -3,27 +3,12 @@
 # login information is in .netrc
 # If it fails silently, make sure that .netrc has the proper machine name, the same as is used in the curl command.
 #
-
-createPutFile()
-{
-    [[ -z "$thisDir" ]] && { echo "No target directory. Exiting..." ; exit 1; }
-    thisPutFile=cadaver.put
-    echo "open https://assumptioncollegewise.wildapricot.org/resources" > $thisPutFile
-    printf "%s\n" "cd $thisDir" >> $thisPutFile
-    for f in $thisFile; do
-	thisFile=$(basename $f)
-	printf "%s\n" "put $f "  >> $thisPutFile
-        done
-    printf "%s\n" "exit" >> $thisPutFile
-}
+# $myWA is the root directory, value stored in .bashrc
+# https://[mydomain]
 
 doit()
 {
-#    cadaver --rcfile=cadaver.put
-    #    printf '%d\n' $?
-    curl -s --anyauth --netrc-file ~/.netrc  'https://assumptionwise.org/resources/'$thisDir/ -T $thisFile
-
-    #    echo "We would do this here"
+    curl -s --anyauth --netrc-file ~/.netrc  ''"$myWA/resources/$thisDir/"'' -T $thisFile
 }
 getHelp()
 {
