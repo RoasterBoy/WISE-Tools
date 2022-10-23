@@ -51,11 +51,17 @@ msg()
 }
 die()
 {
-    if [ "$Verbose" = true ];
+    msgString=$*
+    echo "%% $msgString"
+    echo "%% Exiting %%%"
+    exit 
+}
+checkVar()
+{
+    if [[ -n $$1 ]];
     then
-	msgString=$*
-	echo "%% $msgString"
-    fi
+	die "$1 not defined"
+    fi    
 }
 setup()
 {
@@ -601,6 +607,11 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
     esac
 done
 #
+checkVar Zoom_KEY
+checkVar Zoom_SECRET
+checkVar WA_Key
+#
+
 init "$cmd"
 setup "$cmd"
 if [[ -z $cmd ]]; then
