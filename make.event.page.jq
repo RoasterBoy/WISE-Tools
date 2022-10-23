@@ -1,1 +1,0 @@
-sort_by(.start_time) | .[] | select (.start_time != null) | select(.tracking_fields != null) | select(.tracking_fields[].value == "Event")  | [ .topic, (.start_time | fromdate), .join_url, .settings.global_dial_in_numbers[1].number, .id , .password, "<br/>"+.tracking_fields[].value] | @tsv

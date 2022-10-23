@@ -1,1 +1,1 @@
-if .occurrences == null  then .start_time else [(.occurrences[].start_time) ] | @tsv end
+if (.occurrences != null)  then [(.occurrences[].start_time)] else [.start_time] end | @tsv
