@@ -52,18 +52,14 @@ msg()
 die()
 {
     msgString=$*
-    echo "%% $msgString"
-    echo "%% Exiting %%%"
+    printf "%s\n" "%% $msgString%%"
     exit 
 }
 checkVar()
 {
-    if [[ -n $$1 ]];
+    if [[ -z $$1 ]];
     then
 	die "$1 not defined"
-    fi    
-	msgString=$*
-	printf "%s\n" "%% $msgString"
     fi
 }
 setup()
@@ -404,16 +400,16 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
     # Setting up some variables that we'll use for paths and files
     #
     thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-    echo "$thisDir is \thisDir"
+#    echo "$thisDir is \thisDir"
     awkDir=$thisDir/awk
     jqDir=$thisDir/jq
     case ${opt} in
 	a )
 	    ### -a Archive recordings. Useful only with -r; ignored with other options.
-	    if [[ ! $doingRecs ]]; then
-		printf "%s\n" "-a only valid when you are doing recordings" 
-		exit 1
-	    fi
+#	    if [[ ! $doingRecs ]]; then
+#		printf "%s\n" "-a only valid when you are doing recordings" 
+#		exit 1
+#	    fi
 	    doArchive=true
 	    ;;
 	K )
