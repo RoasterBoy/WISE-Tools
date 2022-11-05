@@ -91,3 +91,7 @@ Try 'date --help' for more information.
 date: invalid date ‘193646
 ```
 it means that we had a problem with a line break between items in sorted.links.tsv
+
+# SSH 
+Ran into the old problem of ssh access denied because of a public key. I still don't have a good answer for this. In fact, my solution wasn't a solution: I created a new AWS instance that worked, set up the instance with the right tools, copied the old crontab entries to the new one, and let it run. 
+Ick.
