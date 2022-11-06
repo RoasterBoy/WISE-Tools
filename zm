@@ -10,7 +10,7 @@
 ## TODO # Group recordings page by course, then date. 
 ## TODO # Sort course links by date, printing only next course
 ## TODO # Maybe delete working directory in \$tmp if successful? Add -K to inhbit this?
-### 
+#
 #
 ## TIL
 ## 1/12/21
@@ -20,9 +20,16 @@
 ##
 ### Use zmtmp system variable to set location of \$tmp
 ### Use zmarchive system variable to set location of \$recDir
-trap "rm -f  hosts.json " EXIT
 # Keeping this.* for now
 set -e
+trap 'catch $? $LINENO' EXIT
+catch() {
+    if [ "$1" != "0" ]; then
+	# error handling goes here
+	echo "Error $1 occurred on $2"
+    fi
+}
+
 SECONDS=0
 simple=false
 download=false
@@ -209,7 +216,7 @@ doCourses()
 
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
-	printf "### %s\n" "Output file is $HTMLFile"
+	printf "## %s\n" "Output file is $HTMLFile"
 	printf "%s\n" "<hr/>" >> $HTMLFile
 	if $publish; 
 	   then
@@ -337,7 +344,7 @@ doRecordings()
 	   else
 	       printf "%s\n" "<p>No recordings for $trackingField at this time" >> $HTMLFile
 	fi
-	printf "### %s\n" "Output file is $HTMLFile"
+	printf "## %s\n" "Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
 	    recode utf8..ascii $HTMLFile
 	    if $publish; then
@@ -482,7 +489,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 		    ;;
 		* )
 		    printf "%s\n" "%% Invalid tracking field for recordngs : $OPTARG"
-		    help
+		    help 
 		    ;;
 	    esac
 
@@ -614,12 +621,12 @@ checkVar Zoom_SECRET
 checkVar WA_Key
 #
 
-init "$cmd"
-setup "$cmd"
 if [[ -z $cmd ]]; then
     printf "%s\n" "%% *Error* - Missing meeting type or recording"
     help
 fi
+init "$cmd"
+setup "$cmd"
 do$cmd "$rptType"
 #
 msg "Elapsed time: $SECONDS"
