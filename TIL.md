@@ -91,3 +91,10 @@ Try 'date --help' for more information.
 date: invalid date ‘193646
 ```
 it means that we had a problem with a line break between items in sorted.links.tsv
+
+# Git
+## See about changes
+If I have a changed file and don't remember what changed, I can compare it against what's in the repository.
+```$ git fetch origin master
+$ git diff origin/master -- [local-path]
+```
