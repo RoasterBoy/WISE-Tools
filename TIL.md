@@ -99,6 +99,15 @@ If I have a changed file and don't remember what changed, I can compare it again
 ```$ git fetch origin master
 $ git diff origin/master -- [local-path]
 ```
+Also,
+```
+git status
+# do things with extraneous files
+#
+# commit the whole branch
+git commit -m "<msg>"
+git push origin master
+```
 =======
 # SSH 
 Ran into the old problem of ssh access denied because of a public key. I still don't have a good answer for this. In fact, my solution wasn't a solution: I created a new AWS instance that worked, set up the instance with the right tools, copied the old crontab entries to the new one, and let it run. 
