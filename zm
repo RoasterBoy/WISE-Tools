@@ -36,6 +36,7 @@ download=false
 publish=true
 init=true
 keepDetail=false
+curlVerbose="-s"
 help()
 {
     thisScript=$(which "$0")
@@ -216,11 +217,11 @@ doCourses()
 
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
-	printf "## %s\n" "Output file is $HTMLFile"
+	msg "## %s\n" "Output file is $HTMLFile"
 	printf "%s\n" "<hr/>" >> $HTMLFile
 	if $publish; 
 	   then
-	       wafiles -l $HTMLFile
+	       wafiles "$curlVerbose" -l $HTMLFile
 	fi
 
     fi
@@ -606,6 +607,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	v )
 	    ### -v Set verbose mode
 	    verbose="true"
+	    curlVerbose="-v"
 	    ;;
 	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
@@ -629,4 +631,10 @@ init "$cmd"
 setup "$cmd"
 do$cmd "$rptType"
 #
-msg "Elapsed time: $SECONDS"
+
+if [  "$verbose" = true ];
+   then
+       msg "Elapsed time: $SECONDS"
+       else
+       printf "%s\n" "Done"
+fi

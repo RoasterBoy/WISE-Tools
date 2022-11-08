@@ -5,10 +5,20 @@
 #
 # $myWA is the root directory, value stored in .bashrc
 # https://[mydomain]
+msg()
+{
+    {
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	printf "%s\n" "%% $msgString"
+    fi
+    }
+}
 
 doit()
 {
-    curl -s --anyauth --netrc-file ~/.netrc  ''"$myWA/resources/$thisDir/"'' -T $thisFile
+    curl $curlVerbose --anyauth --netrc-file ~/.netrc  ''"$myWA/resources/$thisDir/"'' -T $thisFile
 }
 getHelp()
 {
@@ -18,7 +28,7 @@ getHelp()
     echo "-c  Put files in Documents/class.assistants"
     echo "-t  tmp directory for files" 
 }
-while getopts "b:l:t:w:c:h" opt; do
+while getopts "b:l:t:w:c:hsv" opt; do
     case ${opt} in
 	b) # Blogs
 	    thisFile=$OPTARG
@@ -31,7 +41,7 @@ while getopts "b:l:t:w:c:h" opt; do
 	l) # Links
 	    thisFile=$OPTARG
 	    thisDir="Links"
-	    echo "Putting $thisFile in $thisDir"
+	    msg "Putting $thisFile in $thisDir"
 	    ;;
 	t) # tools directory
 	    thisFile=$OPTARG
@@ -43,6 +53,13 @@ while getopts "b:l:t:w:c:h" opt; do
 	    ;;
 	h) # Print help and exit
 	    getHelp
+	    ;;
+	s) # Silent mode
+	    curlVerbose="-s"
+	    ;;
+	v)
+	    # verbose mode
+	    curlVerbose="--verbose"
 	    ;;
 	?)
 	getHelp

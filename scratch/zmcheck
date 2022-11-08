@@ -6,6 +6,8 @@
 #
 # to install urlencode, use this command
 # <install-command> install gridsite-clients
+#
+# <install-command> install gnumeric
 thisOS=$(uname)
 #
 doDarwin()
