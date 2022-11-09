@@ -1,4 +1,10 @@
 #!/bin/bash
+### Setting lock file
+# POSIX (maybe Bourne?)
+lockdir=/tmp/zm.lock
+if mkdir -- "$lockdir"; then
+printf >&2 'successfully acquired lock\n'
+
 ###
 ## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
 ## TODO # And this: https://miller.readthedocs.io/en/latest/
@@ -637,4 +643,12 @@ if [  "$verbose" = true ];
        msg "Elapsed time: $SECONDS"
        else
        printf "%s\n" "Done"
+fi
+
+       
+# Remove lockdir when the script finishes, or when it receives a signal
+trap 'rm -rf -- "$lockdir"' 0    # remove directory when script finishes
+   else
+       printf >&2 'cannot acquire lock, giving up on %s\n' "$lockdir"
+       exit 0
 fi
