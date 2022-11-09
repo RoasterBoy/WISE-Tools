@@ -1,0 +1,14 @@
+#!/bin/bash
+lockdir=/tmp/zm.lock
+if mkdir -- "$lockdir";
+then
+    printf >&2 'successfully acquired lock\n'
+    
+    # Remove lockdir when the script finishes, or when it receives a signal
+    trap 'rm -rf -- "$lockdir"' 0    # remove directory when script finishes
+    touch $lockdir/filelist
+    rm -r ~/tmp
+else
+    printf >&2 'cannot acquire lock, giving up on %s\n' "$lockdir"
+    exit 0
+fi		
