@@ -1,9 +1,19 @@
 #!/bin/bash
 ### Setting lock file
 # POSIX (maybe Bourne?)
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	printf "%s\n" "%% $msgString"
+    fi
+}
+
 lockdir=/tmp/zm.lock
+#
 if mkdir -- "$lockdir"; then
-printf >&2 'successfully acquired lock\n'
+msg "successfully acquired lock"
 
 ###
 ## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
@@ -351,7 +361,7 @@ doRecordings()
 	   else
 	       printf "%s\n" "<p>No recordings for $trackingField at this time" >> $HTMLFile
 	fi
-	printf "## %s\n" "Output file is $HTMLFile"
+	msg "## %s\n" "Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
 	    recode utf8..ascii $HTMLFile
 	    if $publish; then
@@ -638,17 +648,13 @@ setup "$cmd"
 do$cmd "$rptType"
 #
 
-if [  "$verbose" = true ];
-   then
-       msg "Elapsed time: $SECONDS"
-       else
-       printf "%s\n" "Done"
-fi
+msg "Elapsed time: $SECONDS"
 
        
 # Remove lockdir when the script finishes, or when it receives a signal
 trap 'rm -rf -- "$lockdir"' 0    # remove directory when script finishes
-   else
+
+else
        printf >&2 'cannot acquire lock, giving up on %s\n' "$lockdir"
        exit 0
 fi
