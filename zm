@@ -273,7 +273,7 @@ doMtg()
     echo "HTML Link file is $HTMLFile"
     printf "%s\n" "<hr/>" >> $HTMLFile
     if $publish; then
-       wafiles -l $HTMLFile
+       wafiles "$curlVerbose"-l $HTMLFile
     fi
     
 }
