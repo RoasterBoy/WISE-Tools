@@ -52,7 +52,7 @@ download=false
 publish=true
 init=true
 keepDetail=false
-curlVerbose="-s"
+curlVerbose="-s "
 help()
 {
     thisScript=$(which "$0")
@@ -237,7 +237,7 @@ doCourses()
 	printf "%s\n" "<hr/>" >> $HTMLFile
 	if $publish; 
 	   then
-	       wafiles "$curlVerbose" -l $HTMLFile
+	       wafiles $curlVerbose -l $HTMLFile
 	fi
 
     fi
@@ -273,7 +273,7 @@ doMtg()
     echo "HTML Link file is $HTMLFile"
     printf "%s\n" "<hr/>" >> $HTMLFile
     if $publish; then
-       wafiles "$curlVerbose"-l $HTMLFile
+       wafiles $curlVerbose -l $HTMLFile
     fi
     
 }
@@ -365,7 +365,7 @@ doRecordings()
 	    printf "%s\n" "<hr/>" >> $HTMLFile
 	    recode utf8..ascii $HTMLFile
 	    if $publish; then
-	       wafiles  -l $HTMLFile
+	       wafiles $curlVerbose -l $HTMLFile
 	    fi
 
 }

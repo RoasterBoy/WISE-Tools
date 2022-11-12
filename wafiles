@@ -7,6 +7,8 @@
 # $myWA is the root directory, value stored in .bashrc or .zshrc
 # https://[mydomain]
 #
+curlVerbose="--silent "
+#
 checkVar ()
 {
      y=\$"$1"   # Name of variable (not value!).
