@@ -1,10 +1,27 @@
 #!/bin/bash
 # This script uses curl to push files to our server. 
 # login information is in .netrc
+#
 # If it fails silently, make sure that .netrc has the proper machine name, the same as is used in the curl command.
 #
-# $myWA is the root directory, value stored in .bashrc
+# $myWA is the root directory, value stored in .bashrc or .zshrc
 # https://[mydomain]
+#
+checkVar ()
+{
+     y=\$"$1"   # Name of variable (not value!).
+     msg  $y    # $Junk
+     x=`eval "expr \"$y\" "`
+     msg $x
+     if [ -z $x ];
+     then
+	 die "Missing variable $y"
+     else
+	 msg  "Done"
+     fi
+#     eval "$1=\"Some Different Text \""  # Assign new value.
+}
+
 msg()
 {
     {
@@ -15,7 +32,12 @@ msg()
     fi
     }
 }
-
+die()
+{
+    msgString=$1
+    printf "%s\n" "%% $msgString %%"
+    exit
+}
 doit()
 {
     curl $curlVerbose --anyauth --netrc-file ~/.netrc  ''"$myWA/resources/$thisDir/"'' -T $thisFile
@@ -68,5 +90,7 @@ while getopts "b:l:t:w:c:hsv" opt; do
     esac
     done
 
-#createPutFile
+checkVar myWA
+#checkVar moo
+
 doit
