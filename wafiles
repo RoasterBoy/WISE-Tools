@@ -7,6 +7,11 @@
 # $myWA is the root directory, value stored in .bashrc or .zshrc
 # https://[mydomain]
 #
+### TODO
+### If remote directory doesn't exist, create it. Will need to use sftp
+### 1. Add command option to check/create remote dir -D <dir-name>
+### 2. Change options to specify directory? -d <dir-name>. Default is top-level /resources
+### 
 checkVar ()
 {
      y=\$"$1"   # Name of variable (not value!).
@@ -19,7 +24,6 @@ checkVar ()
      else
 	 msg  "Done"
      fi
-#     eval "$1=\"Some Different Text \""  # Assign new value.
 }
 
 msg()
@@ -42,15 +46,14 @@ doit()
 {
     curl $curlVerbose --anyauth --netrc-file ~/.netrc  ''"$myWA/resources/$thisDir/"'' -T $thisFile
 }
-getHelp()
+help()
 {
-    echo "-b  Blog and Bulletin indexes go to Documents/reference/"
-    echo "-l  Files containing Zoom links go to Links" 
-    echo "-w  Others go to Documents/website"
-    echo "-c  Put files in Documents/class.assistants"
-    echo "-t  tmp directory for files" 
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*### ?//;T;p' "$thisScript"
+    exit
 }
-while getopts "b:l:t:w:c:hsv" opt; do
+
+while getopts "b:l:t:w:c:hv" opt; do
     case ${opt} in
 	b) # Blogs
 	    thisFile=$OPTARG
@@ -74,23 +77,18 @@ while getopts "b:l:t:w:c:hsv" opt; do
 	    thisDir="Documents/website"
 	    ;;
 	h) # Print help and exit
-	    getHelp
-	    ;;
-	s) # Silent mode
-	    curlVerbose="-s"
+	    help
 	    ;;
 	v)
 	    # verbose mode
 	    curlVerbose="--verbose"
 	    ;;
 	?)
-	getHelp
+	help
 	;;
 
     esac
     done
 
 checkVar myWA
-#checkVar moo
-
 doit
