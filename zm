@@ -10,9 +10,9 @@ msg()
     fi
 }
 
-lockdir=/tmp/zm.lock
+lockfile=/tmp/zm_lock
 #
-if mkdir -- "$lockdir"; then
+if touch  "$lockfile"; then
 msg "successfully acquired lock"
 
 ###
@@ -623,7 +623,7 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	v )
 	    ### -v Set verbose mode
 	    verbose="true"
-	    curlVerbose="-v"
+	    curlVerbose="-v "
 	    ;;
 	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
@@ -651,10 +651,10 @@ do$cmd "$rptType"
 msg "Elapsed time: $SECONDS"
 
        
-# Remove lockdir when the script finishes, or when it receives a signal
-trap 'rm -rf -- "$lockdir"' 0    # remove directory when script finishes
+# Remove lockfile when the script finishes, or when it receives a signal
+trap 'rm -rf -- "$lockfile"' 0    # remove directory when script finishes
 
 else
-       printf >&2 'cannot acquire lock, giving up on %s\n' "$lockdir"
+       printf >&2 'cannot acquire lock, giving up on %s\n' "$lockfile"
        exit 0
 fi
