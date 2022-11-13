@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# This script checks for installation of required tools to support zm and others
+# TODO Find out how to find out if we're on Ubuntu or RedHat. Both report "Linux" in uname.
+#
+#
+# to install urlencode, use this command
+# <install-command> install gridsite-clients
+#
+# <install-command> install gnumeric
+thisOS=$(uname)
+#
+doDarwin()
+{
+echo "Working on a Mac. We would be installing $1 with homebrew"
+}
+doFedora()
+{
+    echo "working on Fedora/RHEL"
+}
+doLinux()
+{
+echo "Working on Linux/Ubuntu. Installing with apt" 
+}
+
+checkInstall()
+{
+echo "Checking $1 ..."
+testWhich=$(which $1)
+if [[ -z "$testWhich" ]]
+   then
+   do$thisOS $1
+   else
+   echo "$1 installed"
+   	fi
+}
+
+checkInstall $1
+#hostnamectl
