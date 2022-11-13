@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# This file shows various ways of converting ISO 8601 date strings into human-friendly form.
+#
+# jq
+#
+# Example 1
+jq '.meetings[].start_time |  strptime("%Y-%m-%dT%H:%M:%S%Z") | strftime("%B %-e,%Y") ' $FILE
+#
+# Example 2
+# Using an epoch date value
+def fmtTime(z): z | fromdate | strftime("%B %-e %-I:%M %p"); fmtTime(.start_time)
+#
+# See also todateiso8601 (converts epoch to date string)
+# fromdate8601 (converts date string to epoch)
+# 
+# awk
+#
+# bash
+#
+# using explicit string
+date --date="2021-02-15T19:42:42Z" +%s
+# using a variable
+date --date=$thisDate +%s
+# python
