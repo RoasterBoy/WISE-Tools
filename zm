@@ -221,16 +221,14 @@ doCourses()
 	thisLink=$(jq -r -f "$jqFile" "$file")
 	printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
     done
-
     :>"$sortedLinks"
     if [[ $simple = "true" ]]; then
 	printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
 	sort --version-sort "$justLinks" >> "$sortedLinks"
 	msg "Sorted links are in $sortedLinks"
     else
-	sort --version-sort "$justLinks" >> "$sortedLinks"
+	sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
 	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
-
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
 	msg "## %s\n" "Output file is $HTMLFile"
