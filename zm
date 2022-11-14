@@ -268,7 +268,7 @@ doMtg()
 	else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
-    echo "HTML Link file is $HTMLFile"
+    msg "HTML Link file is $HTMLFile"
     printf "%s\n" "<hr/>" >> $HTMLFile
     if $publish; then
        wafiles $curlVerbose -l $HTMLFile
