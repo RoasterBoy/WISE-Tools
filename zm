@@ -95,7 +95,7 @@ setup()
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
-    HTMLFile=$tmp/$rptFile
+    HTMLFile=$tmp/$testMode$rptFile
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
@@ -416,7 +416,7 @@ doParticipation()
 }
 
 
-while getopts "aKNn:dr:Pt:TnShvV" opt; do
+while getopts "aKNn:cdr:Pt:TnShvV" opt; do
 #    shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -622,6 +622,10 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    ### -v Set verbose mode
 	    verbose="true"
 	    curlVerbose="-v "
+	    ;;
+	C )
+	    ### Test mode. Adding test- to report filename
+	    testMode=true
 	    ;;
 	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
