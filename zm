@@ -21,11 +21,8 @@ msg "successfully acquired lock"
 ## TODO # Parse options to the `zoom` command
 ## TODO # Figure out what to do when there are multiple recordings on the same day
 ## TODO # Add -since parameter to fetch more than 30 days of recordings
-## TODO # Do something reasonsble when there are no courses. Right now, script fails
 ## TODO # Document theory of operations, how this works.
 ## TODO # Group recordings page by course, then date. 
-## TODO # Sort course links by date, printing only next course
-## TODO # Maybe delete working directory in \$tmp if successful? Add -K to inhbit this?
 #
 #
 ## TIL
@@ -95,7 +92,7 @@ setup()
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
-    HTMLFile=$tmp/$rptFile
+    HTMLFile=$tmp/$testMode$rptFile
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
@@ -221,16 +218,14 @@ doCourses()
 	thisLink=$(jq -r -f "$jqFile" "$file")
 	printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
     done
-
     :>"$sortedLinks"
     if [[ $simple = "true" ]]; then
 	printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
 	sort --version-sort "$justLinks" >> "$sortedLinks"
 	msg "Sorted links are in $sortedLinks"
     else
-	sort --version-sort "$justLinks" >> "$sortedLinks"
+	sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
 	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
-
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
 	msg "## %s\n" "Output file is $HTMLFile"
@@ -270,7 +265,7 @@ doMtg()
 	else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
-    echo "HTML Link file is $HTMLFile"
+    msg "HTML Link file is $HTMLFile"
     printf "%s\n" "<hr/>" >> $HTMLFile
     if $publish; then
        wafiles $curlVerbose -l $HTMLFile
@@ -294,29 +289,33 @@ patchRecordings()
          --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/settings' \
          --header 'authorization: Bearer '"$thisAuth" > $tmp/$thisMtg.update.txt
 }
+getRecordings()
+{
+    msg "Geting recordings for $trackingField"
+    since=$(date +%Y-%m-%d -d "30 days ago")
+    curl -s --request GET \
+	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=150&from='$since'&type=past' \
+	 --header 'authorization: Bearer '"$thisAuth" -o $tmp/this.json
+    
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' $tmp/this.json > $tmp/this.tsv
+
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | .id ' $tmp/this.json > $tmp/IDs.txt
+}
 doRecordings()
 {
+    getRecordings 
     if [ -z ${zmarchive+x} ]; then 
 	recDir=/archives/Recordings
     else
 	recDir="$zmarchive"
     fi
-    msg "Geting recordings for $trackingField"
-    since=$(date +%Y-%m-%d -d "60 days ago")
-#    since="2021-02-01"
 
-    curl -s --request GET \
-	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=150&from='$since'&type=past' \
-	 --header 'authorization: Bearer '"$thisAuth" -o $tmp/this.json
-    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' $tmp/this.json > $tmp/this.tsv
-
-    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | .id ' $tmp/this.json > $tmp/IDs.txt
-    msg "Getting course details" 
+    msg "Getting details" 
     while IFS='' read -r thisMtg;
     do
 	patchRecordings $thisMtg
     done < $tmp/IDs.txt
-    msg "Getting more course details" 
+    msg "Getting more details" 
     while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 i=$((i+1))
 	 dblEncode $thisUUID
@@ -329,12 +328,10 @@ doRecordings()
 	     dlFile=$(awk -F'\t' '{print $3}' $tmp/$i.tsv)
 	     # Build file name from Course ID and date of recording
 	     if [[ $trackingField = "Course" ]];
-		then 
-		    recFile=$(gawk -F'\t' 'match($4,/([A-D,S][0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
+	     then 
+		 recFile=$(gawk -F'\t' 'match($4,/([A-D,S][0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
 	     else
-		 recFile=$(gawk -F'\t' 'match($4,/(\w*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
-		 
-#		 echo $recFile
+		 recFile=$(gawk -F'\t' 'match($4,/(\w*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)		 
 	     fi
 	     cat $tmp/$i.tsv >> $justLinks
 
@@ -397,28 +394,28 @@ rptParticipants()
 	 msg "Participants' file is $tmp/"$thisSession".xlsx"
 	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
 }
-doParticipation()
+doStats()
 {
-    msg "Doing Participation"
-    :>$tmp/thisParticipation.tsv
-    meetingBasics Course
-
-    for file in "$tmp"/*.details.json;
-    do
-	thisID=$(echo $file | sed -r -e 's/.*([0-9]{11}).*$/\1/g')
-	thisTopic=$(jq '.topic' "$file")
-	curl -s --location --request GET \
-	     'https://api.zoom.us/v2/metrics/meetings/'"$thisID"'/participants?type=past' \
-	     --header 'Authorization: Bearer '"$thisAuth"  \
-	     -o "$tmp"/"$thisID".participants.json
-	thisCount=$(jq -r '.participants[].user_id' "$tmp"/$thisID.participants.json | wc -l)
-	printf "%s\t%s\n", "$thisTopic", "$thisCount" >> $tmp/thisParticipation.tsv
-    done 
-    msg "Participation file is in $tmp/thisParticipation.tsv"
+    getRecordings
+    msg "Getting details"
+    jq --raw-output '.meetings[] | [.id, .topic] | @tsv' $tmp/this.json > $tmp/IDs.txt
+    printf "%s\t%s\t%s\t%s\t%s\n" "Title" "View Date" "Views" "Download Date" "Downloads" > $tmp/$rptType.tsv
+    # why do we have to do this sort?
+    sort --unique $tmp/IDs.txt > $tmp/sorted.txt
+    while IFS='	' read -r thisMtg thisTopic; do
+	export thisTopic
+	i=$((i+1))
+	curl -s --request GET \
+	      --header 'authorization: Bearer '"$thisAuth" \
+	      --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/analytics_summary' > $tmp/$i.json
+	jq  -r 'select( .analytics_summary != null) | select(.analytics_summary[].views_total_count)|  [env.thisTopic ,  (.analytics_summary[] | .date, .views_total_count | tostring)] | @tsv' $tmp/$i.json >> $tmp/$rptType.tsv
+    done < $tmp/sorted.txt
+    datamash -H -g 1 sum 3 < $tmp/$rptType.tsv > $tmp/$rptType.txt
+#    ssconvert $tmp/$rptType.tsv $tmp/$rptType.xlsx
+    unset $thisTopic
 }
 
-
-while getopts "aKNn:dr:Pt:TnShvV" opt; do
+while getopts "aKNn:cdr:Pt:TnShvV" opt; do
 #    shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -430,10 +427,6 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
     case ${opt} in
 	a )
 	    ### -a Archive recordings. Useful only with -r; ignored with other options.
-#	    if [[ ! $doingRecs ]]; then
-#		printf "%s\n" "-a only valid when you are doing recordings" 
-#		exit 1
-#	    fi
 	    doArchive=true
 	    ;;
 	K )
@@ -624,6 +617,18 @@ while getopts "aKNn:dr:Pt:TnShvV" opt; do
 	    ### -v Set verbose mode
 	    verbose="true"
 	    curlVerbose="-v "
+	    ;;
+	V )
+	    ### -V Get Viewer/download statistics
+	    cmd=Stats
+	    doingRecs=true # Setting a flag to say that we're doing recordings
+	    rptType=Statistics
+	    rptFile=Stats.html
+	    trackingField=Course
+	    ;;
+	C )
+	    ### Test mode. Adding test- to report filename
+	    testMode=true
 	    ;;
 	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
