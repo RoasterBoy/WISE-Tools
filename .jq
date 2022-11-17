@@ -1,1 +1,0 @@
-/Users/kh/.jq
