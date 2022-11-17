@@ -16,6 +16,9 @@ if touch  "$lockfile"; then
 msg "successfully acquired lock"
 
 ###
+## TODO # see --ascii-output, -a to remove recode
+## TODO # see 
+#
 ## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
 ## TODO # And this: https://miller.readthedocs.io/en/latest/
 ## TODO # Parse options to the `zoom` command
