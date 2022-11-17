@@ -16,7 +16,8 @@ if touch  "$lockfile"; then
 msg "successfully acquired lock"
 
 ###
-## TODO # see --ascii-output, -a to remove recode
+## TODO Invoke jq with jq  'include "module" {"search": "./"}  ; to pull defs from module.jq
+#
 ## TODO # see 
 #
 ## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
@@ -183,7 +184,7 @@ meetingBasics()
 		     -o "$tmp"/"$thisMtg".details.json
 	    fi
 	    gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
-	    gotTopic=$(jq  --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+	    gotTopic=$(jq   --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
 	    if [[ $gotTopic = "" ]] ; then
 		if [[ $keepDetail = true ]]; then
 		# Leaving next line for debugging purposes
@@ -216,10 +217,9 @@ doCourses()
 	else
 	    jqFile="$thisDir"/make.course.links.jq
 	    theseTimes=$(jq -r  -f $thisDir/get.times.jq  "$file")
-    #| xargs -I DATE date -d "DATE" +"%B %d %-I:%M %p" | xargs -I TIME printf "\t%s" TIME)
 	fi
-	thisLink=$(jq -r -f "$jqFile" "$file")
-	printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
+	thisLink=$(jq -ra -f "$jqFile" "$file")
+	printf "%s\t%s\n" "$thisLink" "$theseTimes" >> "$justLinks"
     done
     :>"$sortedLinks"
     if [[ $simple = "true" ]]; then
@@ -230,7 +230,7 @@ doCourses()
 	sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
 	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	# Make sure we handle entities properly, editing in place
-	recode utf8..ascii  "$HTMLFile"
+#	recode utf8..ascii  "$HTMLFile"
 	msg "## %s\n" "Output file is $HTMLFile"
 	printf "%s\n" "<hr/>" >> $HTMLFile
 	if $publish; 
@@ -255,7 +255,7 @@ doMtg()
 	    if [  $thisURL = "null" ]; then
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
-	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
+	    thisLink=$(jq -ra --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
 #	    #
 	    theseTimes=$(jq -rf $thisDir/get.times.jq "$file")
 	    printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
@@ -264,7 +264,7 @@ doMtg()
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
 	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
-	recode utf8..ascii  "$HTMLFile"
+#	recode utf8..ascii  "$HTMLFile"
 	else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
@@ -363,7 +363,7 @@ doRecordings()
 	fi
 	msg "## %s\n" "Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
-	    recode utf8..ascii $HTMLFile
+#	    recode utf8..ascii $HTMLFile
 	    if $publish; then
 	       wafiles $curlVerbose -l $HTMLFile
 	    fi
