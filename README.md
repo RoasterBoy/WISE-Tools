@@ -4,7 +4,7 @@ Scripts that use the Wild Apricot API to retrieve information about events and c
 This is a brief description of the tools. More detail to come.
 ## zm
 This is the workhorse for management of WISE Zoom meetings. Use ```zm -h``` to see command options.
-Requires ```jq```, ```ssconvert```, and other tools specified in ```tool.list```
+Requires ```jq```, ```ssconvert```, and other tools specified in [```tool.list```](https://github.com/RoasterBoy/WISE-Tools/blob/master/utils/tool.list)
 ## How it works
 ```zm``` uses the Zoom API to pull meeting and recording URLs.
 ### Credentials
