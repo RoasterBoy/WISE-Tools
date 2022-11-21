@@ -18,7 +18,7 @@ Recordings are temporary stored in offline.
 There are some other scripts here.
 ## savethedate
 This command fetches the WISE calendar .ics file and mungs it into an HTML file that can be used for the WISE bulletin.
-Requireds ```ical2json```
+Requireds [```ical2json```](https://www.npmjs.com/package/ical2json)
 ## evals
 Mungs .zip files from Google Forms into a format that can be used by
 our instructator evaluation coordinator. The zip files contain the
