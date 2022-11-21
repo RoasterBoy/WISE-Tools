@@ -218,7 +218,7 @@ doCourses()
 	    jqFile="$thisDir"/make.course.links.jq
 	    theseTimes=$(jq -r  -f $thisDir/get.times.jq  "$file")
 	fi
-	thisLink=$(jq -ra -f "$jqFile" "$file")
+	thisLink=$(jq -r -f "$jqFile" "$file")
 	printf "%s\t%s\n" "$thisLink" "$theseTimes" >> "$justLinks"
     done
     :>"$sortedLinks"
@@ -255,7 +255,7 @@ doMtg()
 	    if [  $thisURL = "null" ]; then
 		thisURL=$(jq -r '.join_url' $file)
 	    fi
-	    thisLink=$(jq -ra --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
+	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
 #	    #
 	    theseTimes=$(jq -rf $thisDir/get.times.jq "$file")
 	    printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
