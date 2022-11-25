@@ -77,7 +77,7 @@ msg()
 die()
 {
     msgString=$*
-    printf "%s\n" "%% $msgString%%"
+    printf "%s\n" "%% $msgString %%"
     exit 
 }
 checkVar()
@@ -342,14 +342,22 @@ doRecordings()
 	     rptParticipants "$other"
 	     # Doing downloads. 
 
-	     ## TODO # check if there's enough space before downloading. Exit with message and ?email
-	     ## TODO # Backup archives to OneDrive, Dropbox
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
 	     else
 		 if [ "$doArchive" == true ]; then
 		     msg "Downloading $recDir/$recFile ..."
-		     wget -q $dlFile -O $recDir/$recFile
+		     thisRec=$(wget --spider $dlFile -o moo.txt | grep Length moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
+		     thisDisk=$(echo $zmarchive | sed 's/\(\/mnt\/[a-z]\).*/\1/')
+		     freeSpace=$(df -H | grep $thisDisk | awk ' {printf "%d\n", $4}')
+		     echo "\$thisRec is $thisRec"
+		     echo "\$freeSpace is $freeSpace"
+#		     exit
+		     if [[ $freeSpace -gt $thisRec ]]; then
+			 wget -q $dlFile -O $recDir/$recFile
+		     else
+			 die "Not enough free space on $thisDisk"
+		     fi
 		 fi
 	     fi
 	 fi
