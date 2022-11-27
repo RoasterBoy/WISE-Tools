@@ -349,6 +349,8 @@ doRecordings()
 	     else
 		 if [ "$doArchive" == true ]; then
 		     msg "Downloading $recDir/$recFile ..."
+		     wget --spider $dlFile
+		     exit
 		     wget -q $dlFile -O $recDir/$recFile
 		 fi
 	     fi
