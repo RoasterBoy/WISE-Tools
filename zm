@@ -26,6 +26,8 @@ else
 fi
 ###
 ## TODO Invoke jq with jq  'include "module" {"search": "./"}  ; to pull defs from module.jq
+##
+## TODO We might use the free geolocation API https://freeipdata.fly.dev/json/<IP-ADDRESS> for greater accuracy in reporting on participation
 #
 ## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
 ## TODO # And this: https://miller.readthedocs.io/en/latest/
