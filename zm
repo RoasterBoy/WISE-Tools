@@ -98,7 +98,7 @@ setup()
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
-    HTMLFile=$tmp/$testMode$rptFile
+    HTMLFile=$tmp/$rptFile
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
@@ -638,10 +638,6 @@ while getopts "aKNn:cdr:Pt:TnShvV" opt; do
 	    rptType=Statistics
 	    rptFile=Stats.html
 	    trackingField=Course
-	    ;;
-	C )
-	    ### Test mode. Adding test- to report filename
-	    testMode=true
 	    ;;
 	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
