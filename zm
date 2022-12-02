@@ -1,0 +1,674 @@
+#!/bin/bash
+### Setting lock file
+# POSIX (maybe Bourne?)
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	printf "%s\n" "%% $msgString"
+    fi
+}
+die()
+{
+    msgString=$*
+    printf "%s\n" "%% $msgString %%"
+    exit 
+}
+
+lockfile=/tmp/zm_lock
+#
+if test -f "$lockfile"; then
+    die "$lockfile exists"
+else 
+    touch "$lockfile"; 
+    msg "successfully acquired lock"
+fi
+###
+## TODO Invoke jq with jq  'include "module" {"search": "./"}  ; to pull defs from module.jq
+##
+## TODO We might use the free geolocation API https://freeipdata.fly.dev/json/<IP-ADDRESS> for greater accuracy in reporting on participation
+#
+## TODO # This resource  may help us parse commands: https://github.com/sigoden/argc
+## TODO # And this: https://miller.readthedocs.io/en/latest/
+## TODO # Parse options to the `zoom` command
+## TODO # Figure out what to do when there are multiple recordings on the same day
+## TODO # Add -since parameter to fetch more than 30 days of recordings
+## TODO # Document theory of operations, how this works.
+#
+#
+## TIL
+## 1/12/21
+## When we get this error, it means this
+## "The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256"
+## There's a problem with the Zoom Secret in .bashrc
+##
+### Use zmtmp system variable to set location of \$tmp
+### Use zmarchive system variable to set location of \$recDir
+# Keeping this.* for now
+set -e
+trap 'catch $? $LINENO' EXIT
+catch() {
+    if [ "$1" != "0" ]; then
+	# error handling goes here
+	echo "Error $1 occurred on $2"
+    fi
+}
+
+SECONDS=0
+simple=false
+download=false
+publish=true
+init=true
+keepDetail=false
+curlVerbose="-s "
+help()
+{
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*### ?//;T;p' "$thisScript"
+    exit
+}
+todo()
+{
+    thisScript=$(which "$0")
+    sed -rn 's/^\s*## TODO ?//;T;p' "$thisScript"
+    exit
+}
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+	msgString=$*
+	printf "%s\n" "%% $msgString"
+    fi
+}
+checkVar()
+{
+    if [[ -z $$1 ]];
+    then
+	die "$1 not defined"
+    fi
+}
+setup()
+{
+    rptType=$1
+    thisAuth=$(python3 $thisDir/get.auth.py)
+    justLinks=$tmp/just.links.tsv
+    msg "Initializing $justLinks"
+    :>"$justLinks"
+    sortedLinks=$tmp/sorted.links.tsv
+    msg "Doing setup for \$rptType $rptType "
+    HTMLFile=$tmp/$testMode$rptFile
+    msg "Initializing $HTMLFile"
+    :>"$HTMLFile"
+    if [[ $simple = "false" ]]; then
+	printf "%s\n" "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
+	printf "%s\n" "<style>body {margin-left: 30px;}</style>" >> $HTMLFile
+	printf "%s\n" "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
+	printf "%s\n" "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
+	printf "%s\n" "<h2>$rptTitle</h2>" >> "$HTMLFile"
+	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
+	if [ -n "$thisNote" ]; then
+	    msg "Got a note"
+	    printf "%s\n" "<b>*** $thisNote ***</b>" >> $HTMLFile
+	fi
+    printf "%s\n" "<p>Updated: $thisDate" >> "$HTMLFile"
+    fi
+}
+init()
+{
+    if [ -z ${zmtmp+x} ]; then 
+	tmp=~/tmp/"$rptType-$(date -u +%s)"
+    else
+	tmp="$zmtmp"
+    fi
+    if [[ "$init" = false ]] ; then
+	msg "Skipping initialization" 
+	return
+    fi
+    msg "Doing initialization"
+    mkdir -p "$tmp"
+    touch "$tmp"/tmp.tmp
+    rm -r "${tmp:?}"/*
+    
+}
+
+getHosts()
+{
+    hostList=$tmp/hosts.list
+    :>$hostList
+    msg "Getting hosts"
+    curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30' \
+	 --header 'Authorization: Bearer '"$thisAuth" -o $tmp/hosts.json
+	jq -r '.users[] | select(.type == 2)  | .id' $tmp/hosts.json > $hostList
+    msg "Got hosts"
+}
+getMeetings()
+{
+    if [[ "$init" = false ]] ; then
+	msg "Skipping update of meeting"
+	return
+    fi
+    if [[ "$getAll" = true ]]; then
+	retrieveType="scheduled"
+    else
+	retrieveType="upcoming"	
+    fi
+	getHosts # returns $hostList
+	while IFS='' read -r thisHost ; do
+	    # Removing some noise
+	    # msg "Working on meetings for $thisHost"
+	    curl -s --location --request GET \
+		 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
+		 --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
+	done < $hostList
+    jq --slurp ' .[] | .meetings[].id' "$tmp"/*info.json  > "$tmp"/all.meetings.list
+    sort --unique > "$tmp"/meetings.list < "$tmp"/all.meetings.list
+}
+meetingBasics()
+{
+    msg "Working on \$trackingField $trackingField"
+    msg "Initializing $cmd.list"
+    rptTypeList=$tmp/this.list
+    :>"$rptTypeList"
+    getMeetings
+    if [[ "$getAll" = true ]]; then
+	showAll="?show_previous_occurrences=true"
+    fi
+    if compgen -G "/tmp/*" > /dev/null; then
+	while IFS='' read -r thisMtg ; do
+	    if [[ "$init" = false ]] ; then
+		msg "Skipping update of $rptType details"
+	    else
+		curl -s --location --request GET \
+		     'https://api.zoom.us/v2/meetings/'"$thisMtg"$showAll\
+		     --header 'Authorization: Bearer '"$thisAuth"\
+		     -o "$tmp"/"$thisMtg".details.json
+	    fi
+	    gotItem=$(jq --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.type.jq "$tmp"/"$thisMtg".details.json)
+	    gotTopic=$(jq   --arg TYPE "$trackingField" -f "$thisDir"/get.zoom.topic.jq  "$tmp"/"$thisMtg".details.json)
+	    if [[ $gotTopic = "" ]] ; then
+		if [[ $keepDetail = true ]]; then
+		# Leaving next line for debugging purposes
+    		mv "$tmp"/"$thisMtg".details.json  "$tmp"/"$thisMtg".nope.json
+	    else
+		rm "$tmp"/"$thisMtg".details.json
+	    fi
+	    else
+		printf "%s\n" "$gotItem" >> "$rptTypeList" 
+	    fi
+	done < "$tmp"/meetings.list
+    else
+	msg "No $rptType files found"
+	exit
+    fi
+}
+
+doCourses()
+{
+    properName=$1
+    msg "Geting dates for $properName"
+    meetingBasics Course
+
+    for file in "$tmp"/*.details.json;
+    do
+	thisTopic=$(jq '.topic' "$file")
+	if [[ $simple = "true" ]]; then
+	    jqFile="$thisDir"/make.simple.course.links.jq
+	    theseTimes=""
+	else
+	    jqFile="$thisDir"/make.course.links.jq
+	    theseTimes=$(jq -r  -f $thisDir/get.times.jq  "$file")
+	fi
+	thisLink=$(jq -r -f "$jqFile" "$file")
+	printf "%s\t%s\n" "$thisLink" "$theseTimes" >> "$justLinks"
+    done
+    :>"$sortedLinks"
+    if [[ $simple = "true" ]]; then
+	printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
+	sort --version-sort "$justLinks" >> "$sortedLinks"
+	msg "Sorted links are in $sortedLinks"
+    else
+	sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
+	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
+	# Make sure we handle entities properly, editing in place
+#	recode utf8..ascii  "$HTMLFile"
+	msg "## %s\n" "Output file is $HTMLFile"
+	printf "%s\n" "<hr/>" >> $HTMLFile
+	if $publish; 
+	   then
+	       wafiles $curlVerbose -l $HTMLFile
+	fi
+
+    fi
+}
+doMtg()
+{
+
+    meetingBasics $tracingField
+    
+    if compgen -G "$tmp"/*.details.json > /dev/null
+    then
+	for file in "$tmp"/*.details.json;
+	do
+	    thisTopic=$(jq '.topic' "$file")
+	    msg "Deep Work on $thisTopic"
+	    thisURL=$(jq -r '.registration_url' $file)
+	    if [  $thisURL = "null" ]; then
+		thisURL=$(jq -r '.join_url' $file)
+	    fi
+	    thisLink=$(jq -r --arg URL $thisURL -f "$thisDir"/make.course.links.jq "$file")
+#	    #
+	    theseTimes=$(jq -rf $thisDir/get.times.jq "$file")
+	    printf "%s\n" "$thisLink	$theseTimes" >> "$justLinks"
+
+	done
+	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
+	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
+	sed -i "s/  / /g" $HTMLFile
+#	recode utf8..ascii  "$HTMLFile"
+	else
+	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
+    fi
+    msg "HTML Link file is $HTMLFile"
+    printf "%s\n" "<hr/>" >> $HTMLFile
+    if $publish; then
+       wafiles $curlVerbose -l $HTMLFile
+    fi
+    
+}
+dblEncode()
+{
+#    echo $1
+    that=$(urlencode $1)
+#    echo $that
+    other=$(urlencode $that)
+#   echo $other
+}
+patchRecordings()
+{
+    thisMtg=$1
+    curl -s --request PATCH \
+	 -H "Content-Type: application/json" \
+	 -d '{"viewer_download": true}' \
+         --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/settings' \
+         --header 'authorization: Bearer '"$thisAuth" > $tmp/$thisMtg.update.txt
+}
+getRecordings()
+{
+    msg "Geting recordings for $trackingField"
+    since=$(date +%Y-%m-%d -d "30 days ago")
+    curl -s --request GET \
+	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=150&from='$since'&type=past' \
+	 --header 'authorization: Bearer '"$thisAuth" -o $tmp/this.json
+    
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | [.start_time,.uuid, .topic ]| @tsv' $tmp/this.json > $tmp/this.tsv
+
+    jq --raw-output --arg TF "$trackingField" '.meetings[] | select (.tracking_fields != null) |. |select(.tracking_fields[].value == $TF) | .id ' $tmp/this.json > $tmp/IDs.txt
+}
+doRecordings()
+{
+    getRecordings 
+    if [ -z ${zmarchive+x} ]; then 
+	recDir=/archives/Recordings
+    else
+	recDir="$zmarchive"
+    fi
+
+    msg "Getting details" 
+    while IFS='' read -r thisMtg;
+    do
+	patchRecordings $thisMtg
+    done < $tmp/IDs.txt
+    msg "Getting more details" 
+    while IFS='	' read -r thisTime thisUUID thisTopic ; do
+	 i=$((i+1))
+	 dblEncode $thisUUID
+	 curl -s --request GET \
+	      --header 'authorization: Bearer '"$thisAuth" \
+	       --url 'https://api.zoom.us/v2/meetings/'"$other"'/recordings' > $tmp/$i.json
+	 code=$(jq '.code' $tmp/$i.json)
+	 if [[ $code == "null" ]]; then 
+	     jq -r ' select(. != .code) | [ (.recording_files[] | select( any(. == "MP4" ) ) | (.recording_start | fromdate), .play_url, .download_url),.topic] | @tsv' $tmp/$i.json > $tmp/$i.tsv
+	     dlFile=$(awk -F'\t' '{print $3}' $tmp/$i.tsv)
+	     # Build file name from Course ID and date of recording
+	     if [[ $trackingField = "Course" ]];
+	     then 
+		 recFile=$(gawk -F'\t' 'match($4,/([A-D,S][0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
+	     else
+		 recFile=$(gawk -F'\t' 'match($4,/(\w*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)		 
+	     fi
+	     cat $tmp/$i.tsv >> $justLinks
+
+	     getParticipants $thisUUID "$recFile"
+	     rptParticipants "$other"
+	     # Doing downloads. 
+
+	     if [ -e "$recDir/$recFile" ]; then
+		 msg "No need to download $recDir/$recFile"
+	     else
+		 if [ "$doArchive" == true ]; then
+		     msg "Downloading $recDir/$recFile ..."
+		     thisRec=$(wget --spider $dlFile -o moo.txt | grep Length moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
+		     thisDisk=$(echo $zmarchive | sed 's/\(\/mnt\/[a-z]\).*/\1/')
+		     freeSpace=$(df -H | grep $thisDisk | awk ' {printf "%d\n", $4}')
+		     echo "\$thisRec is $thisRec"
+		     echo "\$freeSpace is $freeSpace"
+#		     exit
+		     if [[ $freeSpace -gt $thisRec ]]; then
+			 wget -q $dlFile -O $recDir/$recFile
+		     else
+			 die "Not enough free space on $thisDisk"
+		     fi
+		 fi
+	     fi
+	 fi
+     done < $tmp/this.tsv
+
+	if [ -s $justLinks ]; then 
+	    sort -r "$justLinks" > "$sortedLinks"
+	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
+	   else
+	       printf "%s\n" "<p>No recordings for $trackingField at this time" >> $HTMLFile
+	fi
+	msg "## %s\n" "Output file is $HTMLFile"
+	    printf "%s\n" "<hr/>" >> $HTMLFile
+#	    recode utf8..ascii $HTMLFile
+	    if $publish; then
+	       wafiles $curlVerbose -l $HTMLFile
+	    fi
+
+}
+getParticipants()
+{
+    #
+    ## TODO # Needs fixing. See participants  script
+    #
+    partFile=$other.participants
+    partMtg="$1"
+    local thisFile="$2"
+    msg "Getting participants for $partMtg"
+    curl -s --location --request GET \
+	 'https://api.zoom.us/v2/metrics/meetings/'"$partMtg"'/participants?type=past&page_size=200' \
+	 --header 'Authorization: Bearer '"$thisAuth" \
+	 --header 'Cookie: _zm_lang=en-US; cred=DF1D1094C925352ECFFAE5C05E468CA4' -o "$tmp"/"$partFile".json
+
+}
+rptParticipants()
+{
+    local thisSession=${1%.mp4}.participants
+#     for part in "$tmp"/*participants.json;
+    #     do
+	 thisCSV=$thisSession.csv
+    jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession".json > "$tmp"/"$thisCSV"
+#     done
+	 sort -u -t, -k1,1 $tmp/$thisCSV -o $tmp/$thisCSV
+	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisCSV"
+	 msg "Participants' file is $tmp/"$thisSession".xlsx"
+	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
+}
+doStats()
+{
+    getRecordings
+    msg "Getting details"
+    jq --raw-output '.meetings[] | [.id, .topic] | @tsv' $tmp/this.json > $tmp/IDs.txt
+    printf "%s\t%s\t%s\t%s\t%s\n" "Title" "View Date" "Views" "Download Date" "Downloads" > $tmp/$rptType.tsv
+    # why do we have to do this sort?
+    sort --unique $tmp/IDs.txt > $tmp/sorted.txt
+    while IFS='	' read -r thisMtg thisTopic; do
+	export thisTopic
+	i=$((i+1))
+	curl -s --request GET \
+	      --header 'authorization: Bearer '"$thisAuth" \
+	      --url 'https://api.zoom.us/v2/meetings/'"$thisMtg"'/recordings/analytics_summary' > $tmp/$i.json
+	jq  -r 'select( .analytics_summary != null) | select(.analytics_summary[].views_total_count)|  [env.thisTopic ,  (.analytics_summary[] | .date, .views_total_count | tostring)] | @tsv' $tmp/$i.json >> $tmp/$rptType.tsv
+    done < $tmp/sorted.txt
+    datamash -H -g 1 sum 3 < $tmp/$rptType.tsv > $tmp/$rptType.txt
+#    ssconvert $tmp/$rptType.tsv $tmp/$rptType.xlsx
+    unset $thisTopic
+}
+
+while getopts "aKNn:cdr:Pt:TnShvV" opt; do
+#    shopt -s nocasematch
+    #
+    # Setting up some variables that we'll use for paths and files
+    #
+    thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+#    echo "$thisDir is \thisDir"
+    awkDir=$thisDir/awk
+    jqDir=$thisDir/jq
+    case ${opt} in
+	a )
+	    ### -a Archive recordings. Useful only with -r; ignored with other options.
+	    doArchive=true
+	    ;;
+	K )
+	    ### -K keep temporary json meeting files (for debugging)
+	    keepDetails=true
+	    ;;
+	d )
+	    if [[ ! $doingRecs ]]; then
+		printf "%s\n" "-a only valid when you are doing recordings" 
+		exit 1
+	    fi
+	    download=true
+	    ;;
+	n )
+	    ### -n "Add note to the start of the report page. Must be quoted string"
+	    thisNote="$OPTARG"
+	    ;;
+	N )
+	    ### -N don't publish output; we're testing stuff.
+	    publish=false
+	    ;;
+	r )
+	    getAll=true # Get all sessions
+	    doingRecs=true # Setting a flag to say that we're doing recordings
+	    tmpType=${OPTARG,,} # Use parameter substituion to convert $tmpType to lowercase for easier matching
+	    rptType=Recording
+	    case "$tmpType" in
+		### -r Zoom recording type
+		course*)
+		    ###        Courses
+		    trackingField="Course"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=CourseRecordings.html
+		;;
+		event*)
+		    ###        Events
+		    trackingField="Event"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=EventRecordings.html
+		    ;;
+		committee*)
+		    ###        Committee
+		    trackingField="Committee Meeting"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=CommitteeRecordings.html
+		    ;;
+		training*)
+		    ###        Training
+		    trackingField="Training"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=TrainingRecordings.html				    
+		    ;;
+		summer*)
+		    ###        Summer
+		    trackingField="Summer"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=SummerRecordings.html				    
+		    ;;
+		sig**)
+		    ###        SIGs
+		    trackingField="SIG"
+		    rptTitle="$trackingField Recordings"
+		    cmd=Recordings
+		    rptFile=SIGRecordings.html				    
+		    ;;
+		* )
+		    printf "%s\n" "%% Invalid tracking field for recordngs : $OPTARG"
+		    help 
+		    ;;
+	    esac
+
+	    ;;
+	S ) # capital S
+	    ### -S Simplified output to allow us to use the data in a spreadsheet.
+	    simple=true
+	    ;;
+	P )
+	    ### -P  Get course participation stats
+	    getAll=true
+	    trackingField="Course"
+	    rptTitle="Participation for Courses"
+	    cmd=Participation
+	    ;;
+	T )
+	    ### -T Displays TODO items
+	    #
+	    todo
+	    ;;
+	t )
+	    ### -t Zoom meeting type
+	    tmpType=$OPTARG
+	    tmpType=${tmpType,,}
+	    # matching upper or lower, singular or plural
+	    msg "Got type $tmpType"
+	    case "$tmpType" in
+		course*)
+		    ###        Courses
+		    trackingField="Course"
+		    rptTitle="Zoom Links for Courses"
+		    awkFile=$awkDir/zoom.courses.awk
+		    cmd=Courses
+		    rptFile=Courses.html
+		    rptType=Courses
+		;;
+		summer*)
+		    ###        Summer 
+		    trackingField="Summer"
+		    rptTitle="Zoom Links for Summer Courses"
+		    awkFile=$awkDir/zoom.courses.awk
+		    cmd=Courses
+		    rptFile=Summer.Courses.html
+		    rptType=Courses
+		;;
+		training)
+		    ###        Training
+		    trackingField="Training"
+		    rptTitle="Zoom Links for Training Sessions"
+		    cmd=Mtg
+		    rptFile=Training.html
+		    awkFile=$awkDir/zoom.events.awk
+		    rptType=Training
+		    ;;
+		committee*)
+		    ###        Committees
+		    trackingField="Committee Meeting"
+		    rptTitle="Zoom Links for Committee Meetings"
+		    cmd=Mtg
+		    rptFile=Committee.html
+		    awkFile=$awkDir/zoom.clubs.awk
+		    rptType=Committees
+		    ;;
+		event*)
+		    ###        Events
+		    trackingField="Event"
+		    rptTitle="Zoom Links for Events"
+		    awkFile=$awkDir/zoom.events.awk
+		    cmd=Mtg
+		    rptFile=Events.html
+		    rptType=Events
+		    ;;
+		club*)
+		    ###        Clubs
+		    trackingField="Club Meeting"
+		    rptTitle="Zoom Links for Clubs and Groups"
+		    cmd=Mtg
+		    awkFile=$awkDir/zoom.clubs.awk
+		    rptType=Clubs
+		    rptFile=Clubs.html
+		    ;;
+		sig*)
+		    ###        SIG
+		    trackingField="SIG"
+		    rptTitle="Zoom Links for Special Interest Groups (SIGS)"
+		    cmd=Mtg
+		    awkFile=$awkDir/zoom.courses.awk
+		    rptType=SIG
+		    rptFile=SIGs.html
+		    ;;
+		group*)
+		    ###        Group
+		    trackingField="Group Meeting"
+		    rptTitle="Zoom Links for Group Meetings"
+		    awkFile=$awkDir/zoom.clubs.awk
+		    cmd=Mtg
+		    rptType=group
+		    rptFile=Groups.html
+		    ;;		
+		* )
+		    printf "%s\n" "%% Invalid meeting type : $OPTARG"
+		    help
+		    ;;
+	    esac
+	    ;;
+	n )
+	    ### -n Don't initialize, i.e., don't delete contents of ~/tmp/zoom
+	    init=false
+	    ;;
+	h )
+	    ### -h Print help and exit
+	    help
+	    ;;
+	v )
+	    ### -v Set verbose mode
+	    verbose="true"
+	    curlVerbose="-v "
+	    ;;
+	V )
+	    ### -V Get Viewer/download statistics
+	    cmd=Stats
+	    doingRecs=true # Setting a flag to say that we're doing recordings
+	    rptType=Statistics
+	    rptFile=Stats.html
+	    trackingField=Course
+	    ;;
+	C )
+	    ### Test mode. Adding test- to report filename
+	    testMode=true
+	    ;;
+	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
+	     ;;
+	* )
+	    printf "%s\n" "Invalid Option: -$OPTARG" 1>&2
+	    exit 1
+	    ;;
+    esac
+done
+#
+checkVar Zoom_KEY
+checkVar Zoom_SECRET
+checkVar WA_Key
+#
+
+if [[ -z $cmd ]]; then
+    printf "%s\n" "%% *Error* - Missing meeting type or recording"
+    help
+fi
+init "$cmd"
+setup "$cmd"
+do$cmd "$rptType"
+#
+
+msg "Elapsed time: $SECONDS"
+
+       
+# Remove lockfile when the script finishes, or when it receives a signal
+trap 'rm -rf -- "$lockfile"' 0    # remove directory when script finishes
+

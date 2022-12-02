@@ -1,0 +1,61 @@
+#!/bin/bash
+thisParm="$@"
+#
+# pattern for evaluation files
+# 
+#eval_files="WISE*.zip"
+#echo $eval_files
+#ls -l $eval_files
+
+
+# 
+mungOne()
+{
+if [ "${thisParm: -4}" == ".zip" ];
+then
+    thisFile=${thisParm:25:-4}
+    iconv -f ISO-8859-1 -t UTF-8//TRANSLIT "$thisParm" -o "$thisFile"
+    unzip -q -c "$thisParm" > $thisFile
+    thisDir=`basename "$PWD"`
+else
+    thisFile=$1
+fi
+    justFile=$(basename "$thisFile")
+    justFile=${justFile%.*}
+    outFile=$justFile.html
+:> "$outFile"
+echo "<h1>$justFile</h1>" >> "$outFile"
+echo "<h2>Evaluation results</h2>">> "$outFile"
+csvstat --freq -c 2,3,4,5 "$thisFile" | sed -e 's/["{}]//g'| sed -e 's/$/\<br\/\>/g'  >> "$outFile"
+echo "<h2>Median scores</h2>" >> "$outFile"
+csvstat --median -c 6,7,8 "$thisFile" | sed -e 's/["{}]//g'| sed -e 's/$/\<br\/\>/g' >> "$outFile"
+echo "<h2>Comments</h2>" >> "$outFile"
+csvcut -c 9 "$thisFile" | sed -e '/""/d' | sed -e 's/^"/\<p\>"/g' | sed -e 's/$/\<br\/\>/g'  >> "$outFile"
+echo "<hr/><p>" >> "$outFile"
+csvcut -c 10 "$thisFile" | sed -e '/""/d' | sed -e 's/^"/\<p\>"/g' | sed -e 's/$/\<br\/\>/g' >> "$outFile"
+echo "<hr/><p>" >> "$outFile"
+csvcut -c 11 "$thisFile" | sed -e 's/""//g' | sed -e '/^$/d ' | sed -e 's/$/\<br\/\>/g' >> "$outFile"
+
+#echo "<hr/><p>" >> "$outFile"
+#csvstat --freq -c 12 "$thisFile" | sed -e 's/["{}]//g'| sed -e 's/$/\<br\/\>/g'  >> "$outFile"
+echo "Evaluation report is $outFile"
+}
+mungAll()
+{
+    #
+    echo "In mungAll"
+}
+
+while getopts "r" opt; do
+    case ${opt} in 
+	r ) ##3 Recommended courses
+	    cmd=mungAll
+	   ;;
+	* )
+	    cmd=mungOne
+	   ;;
+    esac
+done
+
+$cmd
+

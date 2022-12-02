@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+tmp=~/tmp/wa
+tsvFile=$tmp/stats.tsv
+csvFile=$tmp/stats.csv
+statsFile=~/$(date +"%Y-%m-%d-%H-%M").xlsx
+bigFile=$tmp/big.json
+#
+:>"$csvFile"
+:>"$tsvFile"
+
+get.events.sh -vru
+while IFS='' read -r thisCourse ; do
+    thisLimit=$(jq -r '.RegistrationsLimit' $tmp/$thisCourse.details.json)
+    thisName=$(jq -r '.Name' $tmp/$thisCourse.details.json)
+    thisCount=$(jq --raw-output 'group_by(.Contact) | length' $tmp/$thisCourse.registrations.json)
+    printf "%s\t%i\t%i\n" "$thisName" $thisCount $thisLimit >> $tsvFile
+done < $tmp/events.list
+
+#jq -s '.' $tmp/*registrations.json > $bigFile
+#jq -r '.[][]| [.Event.Name, .DisplayName] | @tsv' $bigFile | datamash -s --group 1 count 2 |  sort --version-sort > $tsvFile
+echo "Course,Registrants,Limit,Pct." > $csvFile
+# TODO: We should be able to do this in the loop.
+awk -F"\t" '{pct=$2/$3*100; printf "\"%s\",%d,%d,%2.2f%%\n", $1, $2, $3, pct}' $tsvFile >> $csvFile
+# TODO Can sscovert format a field as a percentage?
+ssconvert $csvFile $statsFile

@@ -1,0 +1,44 @@
+#!/bin/bash
+thisAuth=$(python ~/WISE-Tools/get.auth.py)
+# all of the instances of a meeting
+###
+### We are limited with the dashboard feature to getting stuff within the past six months.
+### We can look at other options
+###
+if [ $# -eq 0 ]; then
+  from=$(date +%Y-%m-%d -d "30 days ago")
+else
+    from=$1
+    to=$(date -d "$1 1 month" +"%Y-%m-%d")
+fi
+# curl -s --location --request GET 'https://api.zoom.us/v2/users?status=active&page_size=30'\
+ #   --header 'Authorization: Bearer '"$thisAuth" -o hosts.json
+curl -s --request GET  --url 'https://api.zoom.us/v2/metrics/meetings?type=past&from='$from'&to='$to \
+     --header 'Authorization: Bearer '"$thisAuth"
+#-o meetings.json
+exit
+curl -s --request GET \
+     --url 'https://api.zoom.us/v2/users/sZbpHXjlQxiQHTLao_-paA/meetings?type=previous_meetings&page_size=300'\
+     --header 'Authorization: Bearer '"$thisAuth" -o meetings.json
+
+	 #
+#curl -s --location --request GET \
+#     'https://api.zoom.us/v2/past_meetings/92513845810/instances/' \
+#     --header 'Authorization: Bearer '"$thisAuth"
+###
+### This gives us the attendance for each of the meetings.
+### We now need to tie this info back to a meeting name
+###
+jq -r '.meetings[].id' meetings.json | xargs -I UUID  curl -s  'https://api.zoom.us/v2/metrics/meetings/'UUID'/participants?type=past' --header 'Authorization: Bearer '"$thisAuth" -o UUID.json
+	    
+#curl -s  'https://api.zoom.us/v2/metrics/meetings/r4SDswCSRa2P7aCLG8sw2Q==/participants?type=past' 
+ #  --header 'Authorization: Bearer '"$thisAuth" -o boo.json
+
+dblEncode()                                                             
+{                                                                 
+  echo $1                                                            
+  that=$(urlencode $1)                                                      
+  echo $that                                                           
+  other=$(urlencode $that)                                                    
+  echo $other                                                          
+} 

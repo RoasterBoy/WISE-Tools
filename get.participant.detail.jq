@@ -1,0 +1,1 @@
+. | select(.code == null) | .participants[] | [.user_name,  .location,.network_type, .version,.ip_address] | @csv 

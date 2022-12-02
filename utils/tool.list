@@ -1,0 +1,17 @@
+!/bin/bash
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+    exit
+    fi
+jq
+datamash
+gnumeric # includes ssconvert, used to convert csv to xlsx, needs X server to be installed
+csvkit # includes csvstat and csvcut
+ical2json (needs npm for installation)
+# Make python3 be python 
+sudo apt install python-is-python3
+cadaver
+recode
+datamash 
+# urlecode
+sudo apt-get install gridsite-clients # install pip, requests 
