@@ -15,7 +15,9 @@ die()
     printf "%s\n" "%% $msgString %%"
     exit 
 }
-
+if [[ $(uname) == "Darwin ]]; then
+   die "MacOS not supported at this time."
+fi
 lockfile=/tmp/zm_lock
 #
 if test -f "$lockfile"; then
