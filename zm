@@ -15,9 +15,13 @@ die()
     printf "%s\n" "%% $msgString %%"
     exit 
 }
+<<<<<<< HEAD
 if [[ $(uname) = "Darwin" ]]; then
    die "MacOS not supported at this time."
 fi
+=======
+
+>>>>>>> 4e51c1f7d79d96da3b2542c96ff7c76dba2c593c
 lockfile=/tmp/zm_lock
 #
 if test -f "$lockfile"; then
@@ -100,7 +104,11 @@ setup()
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
+<<<<<<< HEAD
     HTMLFile=$tmp/$rptFile
+=======
+    HTMLFile=$tmp/$testMode$rptFile
+>>>>>>> 4e51c1f7d79d96da3b2542c96ff7c76dba2c593c
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
     if [[ $simple = "false" ]]; then
@@ -641,6 +649,13 @@ while getopts "aKNn:cdr:Pt:TnShvV" opt; do
 	    rptFile=Stats.html
 	    trackingField=Course
 	    ;;
+<<<<<<< HEAD
+=======
+	C )
+	    ### Test mode. Adding test- to report filename
+	    testMode=true
+	    ;;
+>>>>>>> 4e51c1f7d79d96da3b2542c96ff7c76dba2c593c
 	:  ) printf "%s\n" "Missing option argument for -$OPTARG" >&2; exit 1
 	     ;;
 	* )
