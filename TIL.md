@@ -59,7 +59,6 @@ We can only download the past six months of data. (Go to page, click Insights, a
 Install XQuartz, mucked around with the ssh server, and now seem to have something working.
 Emacs runs in the Xwindows environment, which has its own configuration. We'll figure this out eventually.
 
-<<<<<<< HEAD
 # Wild Apricot membership fields and attachments
 The plan is to create a script that creates class schedules for each member. To make the schedule available to the member with and without emailing it to them:
 1. Add a membership field in WA. This turns out not to work because you can only enter plain text, no links.
@@ -73,7 +72,6 @@ Just some notes to remember
 ```jq '.topic, (.recording_files[] | select(.file_type == "MP4") |\
       [.recording_start, .play_url, .download_url] )' 8.json | jq -s '.'
 ```
->>>>>>> ae733b785b5d1d0d15da21ba8e79a54a54db09d7
 
 # Errors
 When we encounter stuff such as
@@ -92,7 +90,6 @@ date: invalid date ‘193646
 ```
 it means that we had a problem with a line break between items in sorted.links.tsv
 
-<<<<<<< HEAD
 # Git
 ## See about changes
 If I have a changed file and don't remember what changed, I can compare it against what's in the repository.
@@ -112,4 +109,3 @@ git push origin master
 # SSH 
 Ran into the old problem of ssh access denied because of a public key. I still don't have a good answer for this. In fact, my solution wasn't a solution: I created a new AWS instance that worked, set up the instance with the right tools, copied the old crontab entries to the new one, and let it run. 
 Ick.
->>>>>>> 93c67d7efb8acb8b8bbf3dc37175a8221aece93a
