@@ -18,14 +18,14 @@ die()
 if [[ $(uname) = "Darwin" ]]; then
    die "MacOS not supported at this time."
 fi
-lockfile=/tmp/zm_lock
+#lockfile=/tmp/zm_lock
 #
-if test -f "$lockfile"; then
-    die "$lockfile exists"
-else 
-    touch "$lockfile"; 
-    msg "successfully acquired lock"
-fi
+#if test -f "$lockfile"; then
+#    die "$lockfile exists"
+#else 
+#    touch "$lockfile"; 
+#    msg "successfully acquired lock"
+#fi
 ###
 ## TODO Invoke jq with jq  'include "module" {"search": "./"}  ; to pull defs from module.jq
 ##
@@ -672,5 +672,5 @@ msg "Elapsed time: $SECONDS"
 
        
 # Remove lockfile when the script finishes, or when it receives a signal
-trap 'rm -rf -- "$lockfile"' 0    # remove directory when script finishes
+#trap 'rm -rf -- "$lockfile"' 0    # remove directory when script finishes
 
