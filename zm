@@ -354,10 +354,10 @@ doRecordings()
 		     thisRec=$(wget --spider $dlFile -o moo.txt | grep Length moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
 		     thisDisk=$(echo $zmarchive | sed 's/\(\/mnt\/[a-z]\).*/\1/')
 		     freeSpace=$(df -H | grep $thisDisk | awk ' {printf "%d\n", $4}')
-		     echo "\$thisRec is $thisRec"
-		     echo "\$freeSpace is $freeSpace"
-#		     exit
-		     if [[ $freeSpace -gt $thisRec ]]; then
+		     msg "\$thisRec is $thisRec"
+		     needSpace=$((thisRec / 100000000 ))
+		     msg "\$freeSpace is $freeSpace.\$needSpace is $needSpace"
+		     if [[ $freeSpace -gt $needSpace ]]; then
 			 wget -q $dlFile -O $recDir/$recFile
 		     else
 			 die "Not enough free space on $thisDisk"
