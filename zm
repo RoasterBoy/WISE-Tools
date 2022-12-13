@@ -351,7 +351,7 @@ doRecordings()
 	     else
 		 if [ "$doArchive" == true ]; then
 		     msg "Downloading $recDir/$recFile ..."
-		     thisRec=$(wget --spider $dlFile -o moo.txt | grep Length moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
+		     thisRec=$(wget --spider $dlFile -o $thisDir/moo.txt | grep Length $thisDir/moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
 		     thisDisk=$(echo $zmarchive | sed 's/\(\/mnt\/[a-z]\).*/\1/')
 		     freeSpace=$(df -H | grep $thisDisk | awk ' {printf "%d\n", $4}')
 		     msg "\$thisRec is $thisRec"
