@@ -3,8 +3,8 @@
 ##  Excel and Academic Years
 Formula to identify the Academic Year of a date cell.
 
-```="AY "&YEAR(DATE(YEAR(X2),MONTH(X2)-5,1))+1```
-Where *X2* is the cell adjacent to this formula
+```="AY "&YEAR(DATE(YEAR($D2),MONTH($D2)-5,1))+1```
+Where *$D2* is the cell adjacent to this formula
 
 ## Idea for members-only content block
 ```.publicContentView or .memberContentView``` is what you'll need for the CSS selector along with your custom element's class like...

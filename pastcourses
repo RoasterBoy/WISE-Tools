@@ -95,7 +95,7 @@ mungFiles ()
 	#	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s \t", $i}{printf "%s\n", $1}' $tmp/textfile.txt >> $tmp/mumble.txt
 	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' $tmp/textfile.txt >> $tmp/mumble.txt
 	sed -i'.bak' '/^$/d' $tmp/mumble.txt
-	cat $tmp/mumble.txt  | sort | sed 's/^\(.\)/\U\1/' > $tmp/course.tags.txt
+	cat $tmp/mumble.txt  | uniq | sed 's/^\(.\)/\U\1/' > $tmp/course.tags.txt
 	# Fix case for selected tags
 	sed -i'.bak' 's/Cwi/CWI/gi' $tmp/course.tags.txt
 	cp $thisDir/course.header.html $tmp/past.wise.courses.html
@@ -114,6 +114,7 @@ mungFiles ()
 	thisDate=$(date  +"%B %d, %Y %-I:%m %p")
 	echo "<p>Updated: $thisDate" >> $tmp/past.wise.courses.html
 	cat $thisDir/course.footer.html >> $tmp/past.wise.courses.html
+	recode utf8..ascii past.wise.courses.html
 }
 
 msg()
@@ -183,7 +184,7 @@ if [ $init = true ]; then
    getFiles
 fi
 mungFiles
-push.to.wa.sh  -w $tmp/past.wise.courses.html
+wafiles  -w $tmp/past.wise.courses.html
 end_time=$(date -u +%s)
 elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"
