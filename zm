@@ -356,7 +356,7 @@ doRecordings()
 		     freeSpace=$(df -H | grep $thisDisk | awk ' {printf "%d\n", $4}')
 		     msg "\$thisRec is $thisRec"
 		     needSpace=$((thisRec / 100000000 ))
-		     msg "\$freeSpace is $freeSpace.\$needSpace is $needSpace"
+		     msg "Free space on $zmarchive is $freeSpace. Needed space is $needSpace"
 		     if [[ $freeSpace -gt $needSpace ]]; then
 			 wget -q $dlFile -O $recDir/$recFile
 		     else
