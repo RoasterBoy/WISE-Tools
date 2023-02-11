@@ -201,8 +201,7 @@ meetingBasics()
 	    fi
 	done < "$tmp"/meetings.list
     else
-	msg "No $rptType files found"
-	exit
+	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
 }
 
@@ -211,38 +210,44 @@ doCourses()
     properName=$1
     msg "Geting dates for $properName"
     meetingBasics Course
-
-    for file in "$tmp"/*.details.json;
-    do
-	thisTopic=$(jq '.topic' "$file")
+    if compgen -G "$tmp"/*.details.json >/dev/null; then
+ 
+	for file in "$tmp"/*.details.json;
+	do
+	    thisTopic=$(jq '.topic' "$file")
+	    if [[ $simple = "true" ]]; then
+		jqFile="$thisDir"/make.simple.course.links.jq
+		theseTimes=""
+	    else
+		jqFile="$thisDir"/make.course.links.jq
+		theseTimes=$(jq -r  -f $thisDir/get.times.jq  "$file")
+	    fi
+	    thisLink=$(jq -r -f "$jqFile" "$file")
+	    printf "%s\t%s\n" "$thisLink" "$theseTimes" >> "$justLinks"
+	done
+	:>"$sortedLinks"
 	if [[ $simple = "true" ]]; then
-	    jqFile="$thisDir"/make.simple.course.links.jq
-	    theseTimes=""
+	    printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
+	    sort --version-sort "$justLinks" >> "$sortedLinks"
+	    msg "Sorted links are in $sortedLinks"
 	else
-	    jqFile="$thisDir"/make.course.links.jq
-	    theseTimes=$(jq -r  -f $thisDir/get.times.jq  "$file")
-	fi
-	thisLink=$(jq -r -f "$jqFile" "$file")
-	printf "%s\t%s\n" "$thisLink" "$theseTimes" >> "$justLinks"
-    done
-    :>"$sortedLinks"
-    if [[ $simple = "true" ]]; then
-	printf "%s\n" "Course\tLink\tHost and CA\tPhone\tMeeting Id\tPasscode\tAlternate Hosts\n" > "$sortedLinks"
-	sort --version-sort "$justLinks" >> "$sortedLinks"
-	msg "Sorted links are in $sortedLinks"
-    else
-	sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
-	gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
+	    sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
+	    gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	# Make sure we handle entities properly, editing in place
 #	recode utf8..ascii  "$HTMLFile"
-	msg "## %s\n" "Output file is $HTMLFile"
-	printf "%s\n" "<hr/>" >> $HTMLFile
-	if $publish; 
-	   then
-	       wafiles $curlVerbose -l $HTMLFile
+	    echo "we should publish UNSIMPLE here"
+	    msg "## %s\n" "Output file is $HTMLFile"
+	    printf "%s\n" "<hr/>" >> $HTMLFile
 	fi
-
+    else
+	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
+    echo "we should publish here"
+	if $publish; 
+	then
+	    wafiles $curlVerbose -l $HTMLFile
+	fi
+	
 }
 doMtg()
 {
@@ -272,8 +277,9 @@ doMtg()
 	else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
-    msg "HTML Link file is $HTMLFile"
+    msg "NEW HTML Link file is $HTMLFile"
     printf "%s\n" "<hr/>" >> $HTMLFile
+    echo "we should publish here"
     if $publish; then
        wafiles $curlVerbose -l $HTMLFile
     fi
@@ -370,10 +376,12 @@ doRecordings()
 	if [ -s $justLinks ]; then 
 	    sort -r "$justLinks" > "$sortedLinks"
 	    gawk -F '\t' -f "$awkDir"/zoom.recordings.awk "$sortedLinks" >> "$HTMLFile"
-	   else
+	else
+	        echo "we should publish SMART  here"
+
 	       printf "%s\n" "<p>No recordings for $trackingField at this time" >> $HTMLFile
 	fi
-	msg "## %s\n" "Output file is $HTMLFile"
+	msg "## %s\n" "NEW here is Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
 #	    recode utf8..ascii $HTMLFile
 	    if $publish; then
