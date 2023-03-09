@@ -305,6 +305,12 @@ patchRecordings()
 getRecordings()
 {
     msg "Geting recordings for $trackingField"
+    mkdir -p ~/excel
+    if [[ "$init" = false ]] ; then
+	msg "Skipping initialization"
+	return
+    fi
+    
     since=$(date +%Y-%m-%d -d "30 days ago")
     curl -s --request GET \
 	 --url 'https://api.zoom.us/v2/metrics/meetings?include_fields=tracking_fields&page_size=150&from='$since'&type=past' \
@@ -324,11 +330,11 @@ doRecordings()
     fi
 
     msg "Getting details" 
-    while IFS='' read -r thisMtg;
-    do
-	patchRecordings $thisMtg
-    done < $tmp/IDs.txt
-    msg "Getting more details" 
+#    while IFS='' read -r thisMtg;
+#    do
+#	patchRecordings $thisMtg
+#    done < $tmp/IDs.txt
+#   msg "Getting more details" 
     while IFS='	' read -r thisTime thisUUID thisTopic ; do
 	 i=$((i+1))
 	 dblEncode $thisUUID
@@ -348,12 +354,12 @@ doRecordings()
 	     fi
 	     cat $tmp/$i.tsv >> $justLinks
 
-	     getParticipants $thisUUID "$recFile"
-	     rptParticipants "$other"
 	     # Doing downloads. 
 
 	     if [ -e "$recDir/$recFile" ]; then
 		 msg "No need to download $recDir/$recFile"
+		     getParticipants $thisUUID "$recFile"
+		     rptParticipants "$other" $recFile
 	     else
 		 if [ "$doArchive" == true ]; then
 		     msg "Downloading $recDir/$recFile ..."
@@ -409,13 +415,14 @@ rptParticipants()
     local thisSession=${1%.mp4}.participants
 #     for part in "$tmp"/*participants.json;
     #     do
-	 thisCSV=$thisSession.csv
-    jq --arg FILE  $part -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession".json > "$tmp"/"$thisCSV"
+    thisFile=$2
+    thisTSV=$(basename -- $2 .mp4).tsv
+    jq  -r -f "$thisDir"/get.participant.detail.jq "$tmp"/"$thisSession".json > "$tmp"/"$thisTSV"
 #     done
-	 sort -u -t, -k1,1 $tmp/$thisCSV -o $tmp/$thisCSV
-	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisCSV"
-	 msg "Participants' file is $tmp/"$thisSession".xlsx"
-	 ssconvert "$tmp"/"$thisSession".csv "$tmp"/"$thisSession".xlsx
+	 sort -u -t, -k1,1 $tmp/$thisTSV -o $tmp/$thisTSV
+#	 sed -i '1 i\"User,Location,Network Type, Version, IP"'  "$tmp"/"$thisTSV"
+	 msg "Participants' file is ~/excel/"$thisSession".xlsx"
+	 ssconvert "$tmp"/"$thisTSV" ~/excel/"$thisTSV".xlsx
 }
 doStats()
 {
