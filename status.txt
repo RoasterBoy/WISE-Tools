@@ -1,0 +1,13 @@
+Where I've left things
+
+The filter IsUpcoming doesn't appear to work.
+-s <a date in the future> does work
+Need to add module to build course catalog
+     Extract
+		MeetingTimes
+		Location
+		.DescriptionHtml
+	Format it according to catalog standards
+	Send to MarkDown and then pandoc to Word
+	Merge with header and footer
+	Check for images
