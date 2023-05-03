@@ -1,5 +1,9 @@
 # TIL - Things I've learned
 
+## Help with Zoom OAuth
+
+See https://github.com/recallai/zoom-oauth-cli
+
 ##  Excel and Academic Years
 Formula to identify the Academic Year of a date cell.
 
