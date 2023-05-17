@@ -14,7 +14,7 @@
 # API key must be encoded to base64 with the prefix APIKEY:
 # For example, APIKEY:WFVHjqxMsz9k637XCI64bEahTmO7gjv
 #
-tmp=~/tmp/wa
+tmp=~/wa
 getReg=false
 init=false
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -24,7 +24,6 @@ setup ()
 #--------------------------------------------------------- 
 # Set up working directory
     #
-    tmp=~/tmp/wa
     if [[ "$init" = false ]] ; then
         msg "Skipping initialization"
         return
@@ -55,19 +54,34 @@ getFiles ()
 curl -s --header "Authorization: Bearer $thisAuth"\
      'https://api.wildapricot.org/v2.1/accounts/'"$WA_account"'/Events'$filter -o $tmp/events.json
 jq '.[] | sort_by(.Name) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
-#
-while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
-    # WA has a limit of the number of calls per second
-    # curl will wait 1^6 seconds or 1 min. 4 secs before starting again.
-    if [ ! -f $tmp/$thisEvent-details.json ]; then
-	curl -s --retry 6 --header "Authorization: Bearer $thisAuth"  \
-	     https://api.wildapricot.org/v2.1/accounts/$WA_account/events/$thisEvent \
-	     -o $tmp/$thisEvent-details.json
-    fi
-done  < $tmp/events.list
+
+	while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
+	    # WA has a limit of the number of calls per second
+	    # curl will wait 1^6 seconds or 1 min. 4 secs before starting again.
+	    if [ ! -f $tmp/$thisEvent-details.json ]; then
+		curl -s --retry 6 --header "Authorization: Bearer $thisAuth"  \
+		     https://api.wildapricot.org/v2.1/accounts/$WA_account/events/$thisEvent \
+		     -o $tmp/$thisEvent-details.json
+	    fi
+	done  < $tmp/events.list
+}
+justCount()
+{
+    # Counting
+    jq -r '.Events[] | .Tags[] ' $tmp/events.json > $tmp/tags.txt
+    sed -i'.bak' "/fall/d" $tmp/tags.txt
+    sed -i'.bak' "/spring/d" $tmp/tags.txt
+    sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" $tmp/tags.txt
+    datamash -s g1 count1
+    exit
 }
 mungFiles ()
 {
+if [ $justCount ] ;
+then
+    justCount
+    else
+
     ### TODO
     ### This sed section needs some serious cleanup.
     ### We need to check if old files are present. If not, then give a warning that -i is needed
@@ -114,7 +128,8 @@ mungFiles ()
 	thisDate=$(date  +"%B %d, %Y %-I:%m %p")
 	echo "<p>Updated: $thisDate" >> $tmp/past.wise.courses.html
 	cat $thisDir/course.footer.html >> $tmp/past.wise.courses.html
-	recode utf8..ascii past.wise.courses.html
+	recode utf8..ascii $tmp/past.wise.courses.html
+fi
 }
 
 msg()
@@ -129,6 +144,7 @@ msg()
 
 getHelp() {
     printf "%s\n" "Usage:"
+    printf "%s\n" "-c Just count courses by type"
     printf "%s\n" "-u Get upcoming events"
     printf "%s\n" "-i Get events. Otherwise, use what we have in $tmp"
     printf "%s\n" "-t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\""
@@ -137,8 +153,11 @@ getHelp() {
     printf "%s\n" "-h Prints this message"
     exit
     }
-while getopts "uit:hrs:" opt; do
+while getopts "cuit:hrs:" opt; do
     case ${opt} in
+	c ) echo "Counting courses by tage"
+	    justCount=true
+	    ;;
 	u ) # Get Upcoming Events
 	    echo "Getting upcoming events"
 	    filter="?$filter=IsUpcoming%20eq%20true"
