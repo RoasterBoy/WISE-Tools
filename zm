@@ -348,7 +348,7 @@ doRecordings()
 	     # Build file name from Course ID and date of recording
 	     if [[ $trackingField = "Course" ]];
 	     then 
-		 recFile=$(gawk -F'\t' 'match($4,/([A-D,S][0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
+		 recFile=$(gawk -F'\t' 'match($4,/([A-D,S]\s?[0-9]*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)
 	     else
 		 recFile=$(gawk -F'\t' 'match($4,/(\w*)/,a) {printf "%s-", a[1]}; {print strftime("%Y-%m-%d-%H-%M", $1)".mp4"}' $tmp/$i.tsv)		 
 	     fi
@@ -370,7 +370,7 @@ doRecordings()
 		     needSpace=$((thisRec / 100000000 ))
 		     msg "Free space on $zmarchive is $freeSpace. Needed space is $needSpace"
 		     if [[ $freeSpace -gt $needSpace ]]; then
-			 wget -q $dlFile -O $recDir/$recFile
+			 wget -q $dlFile -O "$recDir/$recFile"
 		     else
 			 die "Not enough free space on $thisDisk"
 		     fi
