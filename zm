@@ -242,7 +242,6 @@ doCourses()
     else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
-    echo "we should publish here"
 	if $publish; 
 	then
 	    wafiles $curlVerbose -l $HTMLFile
