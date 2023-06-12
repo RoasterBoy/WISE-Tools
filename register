@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# This script registers users for an upcoming Zoom meeting.
+#
+# For now, we're feeding the registrants from a downloaded .csv file. In the future, we hope to pull the info via WA API.
+#
+#
+thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+getAuth()
+{
+    credentials=$(echo -n $Zoom_OAuth_CLIENT:$Zoom_OAuth_SECRET | base64)
+    thisAuth=$(curl -s --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ' --header 'Authorization: Basic '$credentials | jq -r '.access_token')
+    #
+ #   curl --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ' \
+#--header 'Authorization: Basic OWpvQlZpaUpUU080TUs1eUdJTzJKUTp2R0o5SkNKaGZhaDNmZzQySEFaSU8xRjNISWV3NWNINQ=='
+
+}
+getAuth
+ssconvert "$2" ./this.csv
+thisMtg=$1
+while IFS=, read first last email ; do 
+    #python add_registrant.py $email $first $last
+    if [[ $email == "Email" ]] ; then
+	    continue
+	fi
+#    echo $thisMtg
+#    echo $email
+#    echo $first
+#    echo $last
+ZOOM_ACCESS_TOKEN="$thisAuth"  python $thisDir/zadd.py $thisMtg $email $first $last
+done <  this.csv;
