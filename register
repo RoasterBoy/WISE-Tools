@@ -9,11 +9,7 @@ thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 getAuth()
 {
     credentials=$(echo -n $Zoom_OAuth_CLIENT:$Zoom_OAuth_SECRET | base64)
-    thisAuth=$(curl -s --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ' --header 'Authorization: Basic '$credentials | jq -r '.access_token')
-    #
- #   curl --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ' \
-#--header 'Authorization: Basic OWpvQlZpaUpUU080TUs1eUdJTzJKUTp2R0o5SkNKaGZhaDNmZzQySEFaSU8xRjNISWV3NWNINQ=='
-
+    thisAuth=$(curl -s --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id='"$Zoom_OAuth_ACCOUNT" --header 'Authorization: Basic '$credentials | jq -r '.access_token')
 }
 getAuth
 ssconvert "$2" ./this.csv
