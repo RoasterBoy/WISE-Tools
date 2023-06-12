@@ -94,7 +94,16 @@ checkVar()
 setup()
 {
     rptType=$1
-    thisAuth=$(python3 $thisDir/get.auth.py)
+#    thisAuth=$(python3 $thisDir/get.auth.py)
+#exit
+accountId="$Zoom_OAuth_ACCOUNT"
+clientId="$Zoom_OAuth_CLIENT"
+clientSecret="$Zoom_OAuth_SECRET"
+
+curl -X POST https://zoom.us/oauth/token -d 'grant_type=account_credentials' -d "account_id={$accountID}" -H 'Host: zoom.us' -H "Authorization: Basic Base64Encoded('"$clientId:$clientSecret"')"
+#	credentials=$(echo -n $Zoom_OAuth_CLIENT:$Zoom_OAuth_SECRET | base64)
+#	thisAuth=$(curl --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ'  --header 'Authorization: Basic '$credentials)
+
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
     :>"$justLinks"
@@ -445,7 +454,7 @@ doStats()
     unset $thisTopic
 }
 
-while getopts "aKNn:cdr:Pt:TnShvV" opt; do
+while getopts "aKMNn:cdr:Pt:TnShvV" opt; do
 #    shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -470,7 +479,7 @@ while getopts "aKNn:cdr:Pt:TnShvV" opt; do
 	    fi
 	    download=true
 	    ;;
-	n )
+	M )
 	    ### -n "Add note to the start of the report page. Must be quoted string"
 	    thisNote="$OPTARG"
 	    ;;
