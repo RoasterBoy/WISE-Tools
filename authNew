@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+getAuth()
+{
+    credentials=$(echo -n $Zoom_CLIENT:$Zoom_SECRET | base64)
+thisAuth=$(curl -v -X POST https://zoom.us/oauth/token -d 'grant_type=account_credentials' -d 'account_id='$Zoom_ACCOUNT -H 'Host: zoom.us' -H 'Authorization: Basic '$credentials | jq -r '.access_token' )
+}
+
+getAuth
+#echo ">>> $thisAuth <<<"
+#curl -v  'https://api.zoom.us/v2/users' -H  'Authorization: Bearer ' $thisAuth
+curl  --location 'https://api.zoom.us/v2/users' --header "Authorization: Bearer  $thisAuth" -o hosts.json
+jq '.users[].id' hosts.json
