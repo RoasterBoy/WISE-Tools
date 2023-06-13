@@ -19,9 +19,5 @@ while IFS=, read first last email ; do
     if [[ $email == "Email" ]] ; then
 	    continue
 	fi
-#    echo $thisMtg
-#    echo $email
-#    echo $first
-#    echo $last
-ZOOM_ACCESS_TOKEN="$thisAuth"  python $thisDir/zadd.py $thisMtg $email $first $last
+ZOOM_ACCESS_TOKEN="$thisAuth"  python $thisDir/zadd.py $thisMtg "$email" "$first"  "$last"
 done <  this.csv;
