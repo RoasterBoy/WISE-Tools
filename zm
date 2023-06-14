@@ -102,7 +102,7 @@ clientSecret="$Zoom_OAuth_SECRET"
 
 #curl -X POST https://zoom.us/oauth/token -d 'grant_type=account_credentials' -d "account_id=$accountID" -H 'Host: zoom.us' -H "Authorization: Basic Base64Encoded('"$clientId:$clientSecret"')"
 	credentials=$(echo -n $Zoom_OAuth_CLIENT:$Zoom_OAuth_SECRET | base64)
-	thisAuth=$(curl --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ'  --header 'Authorization: Basic '$credentials | jq -r '.access_token') 
+	thisAuth=$(curl -s --location --request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=N-R2xiXEQ3iTaJyrhZpjXQ'  --header 'Authorization: Basic '$credentials | jq -r '.access_token') 
 
     justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
