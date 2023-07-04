@@ -93,10 +93,19 @@ checkVar()
 }
 setup()
 {
+    accountId="$Zoom_OAuth_ACCOUNT"
+    clientId="$Zoom_OAuth_CLIENT"
+    clientSecret="$Zoom_OAuth_SECRET"
+
+    credentials=$(echo -n $Zoom_OAuth_CLIENT:$Zoom_OAuth_SECRET | base64)
+    thisAuth=$(curl -s --location 		--request POST 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id='$accountId --header 'Authorization: Basic '$credentials | jq -r '.access_token')
+
+}
+setupFile()
+{
     rptType=$1
-    thisAuth=$(python3 $thisDir/get.auth.py)
-    justLinks=$tmp/just.links.tsv
     msg "Initializing $justLinks"
+    justLinks=$tmp/just.links.tsv
     :>"$justLinks"
     sortedLinks=$tmp/sorted.links.tsv
     msg "Doing setup for \$rptType $rptType "
@@ -116,6 +125,7 @@ setup()
 	fi
     printf "%s\n" "<p>Updated: $thisDate" >> "$HTMLFile"
     fi
+
 }
 init()
 {
@@ -162,7 +172,7 @@ getMeetings()
 	    # msg "Working on meetings for $thisHost"
 	    curl -s --location --request GET \
 		 'https://api.zoom.us/v2/users/'"$thisHost"'/meetings?page_size=300&type='$retrieveType \
-		 --header 'Authorization: Bearer '"$thisAuth" -o "$tmp"/"$thisHost".info.json 
+		 --header 'Authorization: Bearer '$thisAuth -o "$tmp"/"$thisHost".info.json 
 	done < $hostList
     jq --slurp ' .[] | .meetings[].id' "$tmp"/*info.json  > "$tmp"/all.meetings.list
     sort --unique > "$tmp"/meetings.list < "$tmp"/all.meetings.list
@@ -242,7 +252,6 @@ doCourses()
     else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
     fi
-    echo "we should publish here"
 	if $publish; 
 	then
 	    wafiles $curlVerbose -l $HTMLFile
@@ -324,7 +333,7 @@ doRecordings()
 {
     getRecordings 
     if [ -z ${zmarchive+x} ]; then 
-	recDir=/archives/Recordings
+	recDir=$HOME/archives/Recordings
     else
 	recDir="$zmarchive"
     fi
@@ -365,15 +374,14 @@ doRecordings()
 		     msg "Downloading $recDir/$recFile ..."
 		     thisRec=$(wget --spider $dlFile -o $thisDir/moo.txt | grep Length $thisDir/moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
 		     thisDisk=$(echo $zmarchive | sed 's/\(\/mnt\/[a-z]\).*/\1/')
-		     freeSpace=$(df -H | grep $thisDisk | awk ' {printf "%d\n", $4}')
-		     msg "\$thisRec is $thisRec"
-		     needSpace=$((thisRec / 100000000 ))
-		     msg "Free space on $zmarchive is $freeSpace. Needed space is $needSpace"
-		     if [[ $freeSpace -gt $needSpace ]]; then
-			 wget -q $dlFile -O "$recDir/$recFile"
-		     else
-			 die "Not enough free space on $thisDisk"
-		     fi
+#		     echo "\$freespace is $freespace"
+#		     exit
+#		     msg "Free space on $zmarchive is $freeSpace. Needed space is $needSpace"
+#		     if [[ $freeSpace -gt $needSpace ]]; then
+			 wget -q $dlFile  -O "$recDir/$recFile"
+#		     else
+#			 die "Not enough free space on $thisDisk"
+#		     fi
 		 fi
 	     fi
 	 fi
@@ -445,7 +453,7 @@ doStats()
     unset $thisTopic
 }
 
-while getopts "aKNn:cdr:Pt:TnShvV" opt; do
+while getopts "aKMNn:cdr:Pt:TnShvV" opt; do
 #    shopt -s nocasematch
     #
     # Setting up some variables that we'll use for paths and files
@@ -470,7 +478,7 @@ while getopts "aKNn:cdr:Pt:TnShvV" opt; do
 	    fi
 	    download=true
 	    ;;
-	n )
+	M )
 	    ### -n "Add note to the start of the report page. Must be quoted string"
 	    thisNote="$OPTARG"
 	    ;;
@@ -680,6 +688,8 @@ if [[ -z $cmd ]]; then
 fi
 init "$cmd"
 setup "$cmd"
+#exit
+setupFile "$cmd"
 do$cmd "$rptType"
 #
 
