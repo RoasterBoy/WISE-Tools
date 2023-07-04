@@ -112,6 +112,7 @@ git push origin master
 # SSH 
 Ran into the old problem of ssh access denied because of a public key. I still don't have a good answer for this. In fact, my solution wasn't a solution: I created a new AWS instance that worked, set up the instance with the right tools, copied the old crontab entries to the new one, and let it run. 
 Ick.
+This seems to work: https://stackoverflow.com/questions/2643502/git-how-to-solve-permission-denied-publickey-error-when-using-git
 
 # Misc
 Google Drive built-in virus-scanner has a limit of 100MB. Files larger than that will receive a warning on download. There's no fix, just be be careful.
