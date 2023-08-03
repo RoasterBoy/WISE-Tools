@@ -17,6 +17,7 @@
 tmp=~/wa
 getReg=false
 init=false
+makeCatalog=false
 thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 setup ()
 {
@@ -96,18 +97,19 @@ then
 	jq '.Details.RegistrationTypes[].CurrentRegistrantsCount' $f >> $tmp/regcount.txt
 	
     done
-    cat $tmp/allFiles.tsv | ftfy -g >  $tmp/textfile.txt
+    recode utf8..ascii $tmp/allFiles.tsv
+#    cat $tmp/allFiles.tsv | ftfy -g >  $tmp/textfile.txt
 	# Cleanup tags as best we can
 #
-	sed -i'.bak' "/cancelled/d" $tmp/textfile.txt
-	sed -i'.bak' "/Membership/d" $tmp/textfile.txt
-	sed -i'.special' "/special/d" $tmp/textfile.txt
-	sed -i'.annual' "/annual meeting/d" $tmp/textfile.txt
+	sed -i'.bak' "/cancelled/d" $tmp/allFiles.tsv
+	sed -i'.bak' "/Membership/d" $tmp/allFiles.tsv
+	sed -i'.special' "/special/d" $tmp/allFiles.tsv
+	sed -i'.annual' "/annual meeting/d" $tmp/allFiles.tsv
 #
-	sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" $tmp/textfile.txt
+	sed -i'.bak' -e "$(sed 's:.*:s/\\t&\\b//g:' $thisDir/Island.of.Unwanted.Tags.txt)" $tmp/allFiles.tsv
 	echo "" > $tmp/mumble.txt
-	#	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s \t", $i}{printf "%s\n", $1}' $tmp/textfile.txt >> $tmp/mumble.txt
-	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' $tmp/textfile.txt >> $tmp/mumble.txt
+	#	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s \t", $i}{printf "%s\n", $1}' $tmp/allFiles.tsv >> $tmp/mumble.txt
+	awk -F "\t"  '{for(i=2; i<=NF; i++) printf "%s\t%s\n", $i,$1}' $tmp/allFiles.tsv >> $tmp/mumble.txt
 	sed -i'.bak' '/^$/d' $tmp/mumble.txt
 	cat $tmp/mumble.txt  | uniq | sed 's/^\(.\)/\U\1/' > $tmp/course.tags.txt
 	# Fix case for selected tags
