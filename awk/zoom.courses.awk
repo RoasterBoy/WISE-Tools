@@ -1,7 +1,7 @@
 BEGIN {}
 {
     printf "<h2>%s</h2>\n", $1
-    printf "<p>Next class meeting: <b>%s</b>", $8=strftime("%B %d, %Y %-I:%M %p", $8)
+    printf "<p>Next meeting: <b>%s</b>", $8=strftime("%B %d, %Y %-I:%M %p", $8)
     printf "<p><b>Zoom Link</b>: <a href='%s'>%s</a>", $2, $2
     #Class Host
     printf "<br>%s", $3
