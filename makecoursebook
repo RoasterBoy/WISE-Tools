@@ -10,7 +10,7 @@ mungFiles ()
     for f in $FILES
     do
 	#	echo "Working on $f"
-	jq  --raw-output -f $thisDir/makeCourseBook.jq $f | pandoc -o $f.md
+	jq  --raw-output 'include {"search","~/WISE-Tools/makeCourseBook.jq"};' $f >> allFiles.tsv
 	
     done
     exit
@@ -67,5 +67,43 @@ failure() {
 }
 trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
 start_time="$(date -u +%s)"
-mungFiles
+doBook()
+{
+    #
+    echo "Doing $cmd"
+}
+doFlyer()
+{
+    #
+    echo "Doing $cmd"
+}
+doList()
+{
+    #
+    echo "Doing $cmd"
+    mungFiles
+}
 
+while getopts "bfl" opt; do
+    case ${opt} in
+	b ) ### Make course book
+	    cmd=Book
+	    echo "do$cmd"
+	    ;;
+	f ) #3# Make flyer
+	    cmd=Flyer
+	    ;;
+	l ) ### make course list
+	    cmd=List
+	    ;;
+	\?) valid=0
+            echo "An invalid option has been entered: $opt"
+            ;;
+
+        :)  valid=0
+            echo "The additional argument for option $OPTARG was omitted."
+            ;;
+    esac 
+done
+
+do$cmd
