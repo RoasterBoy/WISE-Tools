@@ -1,0 +1,104 @@
+#!/bin/bash
+tmp=~/wa
+getReg=false
+init=false
+thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+if test -f this.tsv; then
+    rm this.tsv
+fi
+mungFiles ()
+{
+#    echo "" > allFiles.tsv
+    FILES=$tmp/*details.json
+    cd $thisDir
+    echo "<h1>This catalog</h1>" > item.html
+    echo "<style>table, th, td { \
+      border: 1px solid black;  \
+      border-collapse: collapse;\
+      }\
+      </style>\
+      <table>" >> item.html
+    echo "<tr><th>Course</th><th>Start Date</th></tr>" >> item.html
+    for f in $FILES
+    do
+	#E	echo "Working on $f"
+	## note: there is a hard link betwee .jq in WISE-Tools and ~/.jq. This allows us to keep .jq under version control.
+	jq -r '[.Name, myDateTime(.StartDate)]|@tsv' $f| \
+	    awk 'BEGIN {FS="\t";}; {printf "<tr><td>%s</td><td>%s</td></tr>\n",$1, $2 }' >> item.html
+    done
+    echo "</table>" >> item.html
+}
+
+msg()
+{
+    if [  "$verbose" = true ];
+    then
+#       echo "Verbose is $verbose"
+        thisString=$@
+        echo "%% $thisString"
+    fi
+}
+
+set -eE -o functrace
+failure() {
+    local lineno=$1
+    local msg=$2
+    echo "Failed at $lineno: $msg"
+}
+trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
+start_time="$(date -u +%s)"
+doBook()
+{
+    #
+    echo "Doing $cmd"
+}
+doFlyer()
+{
+    #
+    echo "Doing $cmd"
+}
+doList()
+{
+    #
+    echo "Doing $cmd"
+    mungFiles
+}
+doTags()
+{
+    #
+    FILES=$tmp/*details.json
+    cd $thisDir
+    echo "<h1>This catalog</h1>" > item.html
+    for f in $FILES
+    do
+	#E	echo "Working on $f"
+	## note: there is a hard link betwee .jq in WISE-Tools and ~/.jq. This allows us to keep .jq under version control.
+	jq --raw-output '.|[.Name,(.Tags| map(select(test("2023|a-|b-")|not))|.[])] | @tsv' $f >> this.tsv
+    done
+}
+
+while getopts "bflt" opt; do
+    case ${opt} in
+	b ) ### Make course book
+	    cmd=Book
+	    echo "do$cmd"
+	    ;;
+	f ) #3# Make flyer
+	    cmd=Flyer
+	    ;;
+	l ) ### make course list
+	    cmd=List
+	    ;;
+	t ) ### Group courses by tags
+	    cmd=Tags
+	    ;;
+	\?) valid=0
+            echo "An invalid option has been entered: $opt"
+            ;;
+        :)  valid=0
+            echo "The additional argument for option $OPTARG was omitted."
+            ;;
+    esac 
+done
+
+do$cmd
