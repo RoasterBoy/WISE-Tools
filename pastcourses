@@ -92,6 +92,8 @@ then
     FILES=$tmp/*details.json
     for f in $FILES
     do
+	msg "Getting details for $f"
+
 	#	echo "Working on $f"
 	jq  --raw-output -f $thisDir/makeHistory.jq $f >> $tmp/allFiles.tsv
 	jq '.Details.RegistrationTypes[].CurrentRegistrantsCount' $f >> $tmp/regcount.txt
@@ -163,7 +165,7 @@ getHelp() {
     printf "%s\n" "-h Prints this message"
     exit
     }
-while getopts "cuit:hmrs:" opt; do
+while getopts "cuit:hmrs:v" opt; do
     case ${opt} in
 	c ) echo "Counting courses by tage"
 	    justCount=true
@@ -191,6 +193,9 @@ while getopts "cuit:hmrs:" opt; do
 	    ;;
 	h) # Print help and exit
 	    getHelp
+	    ;;
+	v ) # Verbose mode
+	    verbose=true
 	    ;;
 	?)
 	    getHelp
