@@ -1,4 +1,6 @@
 #!/bin/bash
+### To Do
+
 tmp=~/wa
 getReg=false
 init=false
@@ -6,6 +8,46 @@ thisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 if test -f this.tsv; then
     rm this.tsv
 fi
+getAuth()
+{   
+    thisKey=`echo -ne "APIKEY:$WA_key"|base64`
+    curl -s  --header "Content-Type:application/x-www-form-urlencoded" \
+	 --header "Authorization: Basic $thisKey" -d "grant_type=client_credentials&scope=auto"\
+	 https://oauth.wildapricot.org/auth/token  -o $tmp/token.json
+    # 
+    thisAuth=$(jq -r '.access_token' $tmp/token.json)
+    #
+}
+getFiles ()
+{
+if [[ "$init" = false ]] ; then
+    msg "Skipping initialization"
+    return
+fi
+msg "Doing initialization"
+mkdir -p "$tmp"
+touch "$tmp"/tmp.tmp
+rm -r "${tmp:?}"/*
+getAuth
+curl -s --header "Authorization: Bearer $thisAuth"\
+     'https://api.wildapricot.org/v2.1/accounts/'"$WA_account"'/Events'$filter -o $tmp/events.json
+jq '.[] | sort_by(.Name) | .[].Id | rtrimstr(",")' $tmp/events.json > $tmp/events.list
+
+	while IFS='' read -r thisEvent || [[ -n "$thisEvent" ]]; do
+	    # WA has a limit of the number of calls per second
+	    # curl will wait 1^6 seconds or 1 min. 4 secs before starting again.
+	    if [ ! -f $tmp/$thisEvent-details.json ]; then
+		curl -s --retry 6 --header "Authorization: Bearer $thisAuth"  \
+		     https://api.wildapricot.org/v2.1/accounts/$WA_account/events/$thisEvent \
+		     -o $tmp/$thisEvent-details.json
+	    fi
+	done  < $tmp/events.list
+}
+     
+
+
+
+
 mungFiles ()
 {
 #    echo "" > allFiles.tsv
@@ -24,7 +66,7 @@ mungFiles ()
 	#E	echo "Working on $f"
 	## note: there is a hard link betwee .jq in WISE-Tools and ~/.jq. This allows us to keep .jq under version control.
 	jq -r '[.Name, myDateTime(.StartDate)]|@tsv' $f| \
-	    awk 'BEGIN {FS="\t";}; {printf "<tr><td>%s</td><td>%s</td></tr>\n",$1, $2 }' >> item.html
+	    awk 'BEGIN {FS="\t";}; {printf "<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n",$1, $2, $3 }' >> item.html
     done
     echo "</table>" >> item.html
 }
@@ -51,7 +93,12 @@ doBook()
 {
     #
     echo "Doing $cmd"
+    FILES=$tmp/*details.json
+    cd $thisDir
+    jq -s '.' $tmp/*details.json | \
+	jq -r '.[]["<h1>" + .Name + "</h1>,"<p>"+ myDateTime(.StartDate) + "<p>,.Details.DescriptionHtml]'  > item.html
 }
+    sed -ibak 's/\/resources/https:\/\/assumptionwise.org\/resources/' item.html
 doFlyer()
 {
     #
@@ -77,7 +124,7 @@ doTags()
     done
 }
 
-while getopts "bflt" opt; do
+while getopts "bfilt" opt; do
     case ${opt} in
 	b ) ### Make course book
 	    cmd=Book
@@ -85,6 +132,9 @@ while getopts "bflt" opt; do
 	    ;;
 	f ) #3# Make flyer
 	    cmd=Flyer
+	    ;;
+	i ) ## Initialize WA folder
+	    init=true
 	    ;;
 	l ) ### make course list
 	    cmd=List
@@ -100,5 +150,5 @@ while getopts "bflt" opt; do
             ;;
     esac 
 done
-
+getFiles
 do$cmd
