@@ -96,7 +96,7 @@ doBook()
     FILES=$tmp/*details.json
     cd $thisDir
     jq -s '.' $tmp/*details.json | \
-	jq -r '.[]["<h1>" + .Name + "</h1>,"<p>"+ myDateTime(.StartDate) + "<p>,.Details.DescriptionHtml]'  > item.html
+	jq -r '.[]| ["<h1>" + .Name + "</h1>","<p>"+ myDateTime(.StartDate) + "<p>",.Details.DescriptionHtml]'  > item.html
 }
     sed -ibak 's/\/resources/https:\/\/assumptionwise.org\/resources/' item.html
 doFlyer()
@@ -108,7 +108,11 @@ doList()
 {
     #
     echo "Doing $cmd"
-    mungFiles
+    echo "<table>" > item.html
+#    cd $thisDir
+    jq -s '.' $tmp/*details.json | \
+	jq -r '.[] | makeList(.)'  >> item.html
+    sed -ibak 's/\/resources/https:\/\/assumptionwise.org\/resources/' item.html
 }
 doTags()
 {
