@@ -112,13 +112,14 @@ setupFile()
     HTMLFile=$tmp/$testMode$rptFile
     msg "Initializing $HTMLFile"
     :>"$HTMLFile"
+    cat $thisDir/wa-header.txt > $HTMLFile
     if [[ $simple = "false" ]]; then
-	printf "%s\n" "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" > $HTMLFile
+	printf "%s\n" "<link href="https://sf.wildapricot.org/BuiltTheme/tinted_tiles_partly_cloudy.v3.0/current/3a1388a7/styles/combined.css" rel="stylesheet" type="text/css">" >> $HTMLFile
 	printf "%s\n" "<style>body {margin-left: 30px;}</style>" >> $HTMLFile
 	printf "%s\n" "<img src='/resources/Pictures/WISE-Logos/WISE-Logo-Full-Name.png'/>" >> $HTMLFile
 	printf "%s\n" "<p>Return to the  <a href="https://assumptionwise.org">WISE Home page</a>" >> $HTMLFile
 	printf "%s\n" "<h2>$rptTitle</h2>" >> "$HTMLFile"
-	thisDate=$(date  +"%B %d, %Y %-I:%M %p")
+	thisDate=$(date  +"%A, %B %d, %Y %-I:%M %p")
 	if [ -n "$thisNote" ]; then
 	    msg "Got a note"
 	    printf "%s\n" "<b>*** $thisNote ***</b>" >> $HTMLFile
@@ -244,7 +245,7 @@ doCourses()
 	    sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
 	    gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	# Make sure we handle entities properly, editing in place
-#	recode utf8..ascii  "$HTMLFile"
+	recode utf8..ascii  "$HTMLFile"
 	    echo "we should publish UNSIMPLE here"
 	    msg "## %s\n" "Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
@@ -280,7 +281,7 @@ doMtg()
 
 	done
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
-	gawk -F '\t' -f $awkFile "$sortedLinks" >> "$HTMLFile"
+	gawk -F '\t'   -f $awkFile "$sortedLinks" >> "$HTMLFile"
 	sed -i "s/  / /g" $HTMLFile
 #	recode utf8..ascii  "$HTMLFile"
 	else
