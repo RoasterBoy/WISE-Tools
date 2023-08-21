@@ -122,6 +122,11 @@ doTags()
 	## note: there is a hard link betwee .jq in WISE-Tools and ~/.jq. This allows us to keep .jq under version control.
 	jq --raw-output '.|[.Name,(.Tags| map(select(test("2023|a-|b-")|not))|.[])] | @tsv' $f >> this.tsv
     done
+    echo "<table>" > tags.html
+    datamash -s -g 2  collapse 1 < this.tsv  > this.txt
+    awk 'BEGIN {FS="\t"};{printf "<tr><td>%s</td><td>%s</td></tr>\n",$1, $2}' this.txt >> tags.html
+    cat tags.html | tr '[:lower:]' '[:upper:]' > IC.html
+    echo "</table" >> tags.html
 }
 
 while getopts "bfilt" opt; do

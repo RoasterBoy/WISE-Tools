@@ -159,19 +159,23 @@ getHelp() {
     printf "%s\n" "-u Get upcoming events"
     printf "%s\n" "-i Get events. Otherwise, use what we have in $tmp"
     printf "%s\n" "-m Make catalog"
+    printf "%s\n" "-n We are not puublishing this"
     printf "%s\n" "-t Use these tags. Tags must be comma-separated in a quoted string: \"fall,spring\""
     printf "%s\n" "-s Start date for course filtering yyyy-mm-dd"
     printf "%s\n" "-r Get registration: y/n. Default is y if init is yes."
     printf "%s\n" "-h Prints this message"
     exit
     }
-while getopts "cuit:hmrs:v" opt; do
+while getopts "cuit:hmnrs:v" opt; do
     case ${opt} in
 	c ) echo "Counting courses by tage"
 	    justCount=true
 	    ;;
 	m ) echo "Making catalog"
 	    makeCatalog=true
+	    ;;
+	n) echo "Not publishing"
+	   publish=false
 	    ;;
 	u ) # Get Upcoming Events
 	    echo "Getting upcoming events"
@@ -224,7 +228,9 @@ if [ $makeCatalog = true ]; then
     makeCatalog
 fi
 mungFiles
-wafiles  -w $tmp/past.wise.courses.html
+if [[ $publish != false ]]; then
+   wafiles  -w $tmp/past.wise.courses.html
+fi
 end_time=$(date -u +%s)
 elapsed=$((end_time-start_time))
 msg "Elapsed time: $elapsed seconds"
