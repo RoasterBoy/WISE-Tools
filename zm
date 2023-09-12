@@ -246,7 +246,6 @@ doCourses()
 	    gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	# Make sure we handle entities properly, editing in place
 	recode utf8..ascii  "$HTMLFile"
-	    echo "we should publish UNSIMPLE here"
 	    msg "## %s\n" "Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
 	fi
