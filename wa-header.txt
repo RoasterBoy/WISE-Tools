@@ -1,0 +1,4 @@
+<head>
+<link rel="shortcut icon" type="image/ico" href="/Resources/Pictures/beanie.ico"  />
+
+</head>
