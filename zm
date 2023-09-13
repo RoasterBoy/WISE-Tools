@@ -372,7 +372,7 @@ doRecordings()
 	     else
 		 if [ "$doArchive" == true ]; then
 		     msg "Downloading $recDir/$recFile ..."
-		     thisRec=$(wget --spider $dlFile -o $thisDir/moo.txt | grep Length $thisDir/moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
+		     thisRec=$(getLength)
 		     thisDisk=$(echo $zmarchive | sed 's/\(\/mnt\/[a-z]\).*/\1/')
 #		     echo "\$freespace is $freespace"
 #		     exit
@@ -403,6 +403,12 @@ doRecordings()
 	    fi
 
 }
+getLength()
+{
+    wget --spider $dlFile -o $thisDir/moo.txt
+    thisLength=$(grep Length $thisDir/moo.txt | sed 's/Length: \(\([0-9]*\)\).*/\1/')
+    echo $thisLength
+    }
 getParticipants()
 {
     #
