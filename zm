@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ### Setting lock file
 # POSIX (maybe Bourne?)
 msg()
@@ -15,9 +15,6 @@ die()
     printf "%s\n" "%% $msgString %%"
     exit 
 }
-if [[ $(uname) = "Darwin" ]]; then
-   die "MacOS not supported at this time."
-fi
 #lockfile=/tmp/zm_lock
 #
 #if test -f "$lockfile"; then
@@ -245,7 +242,11 @@ doCourses()
 	    sort -t$'\t' -k8 -n "$justLinks" >> "$sortedLinks"
 	    gawk -F '\t' -f "$awkFile" "$sortedLinks" >> "$HTMLFile"
 	# Make sure we handle entities properly, editing in place
-	recode utf8..ascii  "$HTMLFile"
+if [[ $(uname) = "Darwin" ]]; then
+    recode utf8..ascii-translit  "$HTMLFile"
+    else
+    recode utf8..ascii  "$HTMLFile"
+fi
 	    msg "## %s\n" "Output file is $HTMLFile"
 	    printf "%s\n" "<hr/>" >> $HTMLFile
 	fi
