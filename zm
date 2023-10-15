@@ -282,7 +282,7 @@ doMtg()
 	done
 	sort -t$'\t' -k8 $tmp/just.links.tsv > "$sortedLinks"
 	gawk -F '\t'   -f $awkFile "$sortedLinks" >> "$HTMLFile"
-	sed -i "s/  / /g" $HTMLFile
+	#sed -i "s/  / /g" $HTMLFile
 #	recode utf8..ascii  "$HTMLFile"
 	else
 	printf "%s\n" "<p>No "$trackingField"s scheduled." >> $HTMLFile
