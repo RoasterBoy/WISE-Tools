@@ -2,15 +2,11 @@
 # 
 # This script uses the Wild Apricot API to fetch information about upcoming events.
 # 
-# Uses jq
-# See https://stedolan.github.io/jq/
-# 
 # WA_key is our API key 
 # WA_account is our Wild Apricot account number
 # Both are set in .bashrc
 # 
-# API key must be encoded to base64 with the prefix APIKEY:
-# For example, APIKEY:WFVHjqxMsz9k637XCI64bEahTmO7gjv
+# API key must be encoded to base64 with the prefix APIKEY
 #
 ### get.events - get Wild Apricot events
 ###
