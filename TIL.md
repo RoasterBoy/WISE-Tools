@@ -1,5 +1,11 @@
 # TIL - Things I've learned
 
+## Em dash and en dash in Mac Powerpoint
+
+
+- ```Option-Shift-hyphen```
+- ```Option-hyphen```
+
 ## Help with Zoom OAuth
 
 See https://github.com/recallai/zoom-oauth-cli
