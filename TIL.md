@@ -122,3 +122,5 @@ This seems to work: https://stackoverflow.com/questions/2643502/git-how-to-solve
 
 # Misc
 Google Drive built-in virus-scanner has a limit of 100MB. Files larger than that will receive a warning on download. There's no fix, just be be careful.
+
+[Hacker Laws\#](https://hacker-laws.com/)
