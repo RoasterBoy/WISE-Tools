@@ -5,7 +5,7 @@ if [ -z "$1" ]; then
     exit
 fi
 
-#echo "Client: $Zoom_OAuth_CLIENT"
+# echo "Client: $Zoom_OAuth_CLIENT"
 #echo "Secret: ${Zoom_OAuth_SECRET:0:5}..."  # Only show first 5 chars for security
 #echo "Account: $Zoom_OAuth_ACCOUNT"
 
