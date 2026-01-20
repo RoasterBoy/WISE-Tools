@@ -38,8 +38,8 @@ thisFile=$(jq -r '.meeting_id' thisInstance.json)
 #echo "<img src="WISE-Logo_Owl.jpg">" > $thisFile.md
 thisTitle=$(jq -r '.summary_title' thisInstance.json)
 echo :>$thisFile.md
-
-jq -r '"\n\n" + .meeting_start_time | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%B %-e, %Y")' thisInstance.json >> $thisFile.md
+jq -r '.meeting_start_time | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("\n\n%B %-e, %Y")' thisInstance.json >> $thisFile.md
+#jq -r '"\n\n" + .meeting_start_time | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%B %-e, %Y")' thisInstance.json >> $thisFile.md
 jq -r '(.summary_details[]|"\n## " +.label+"\n\n",.summary),"\n\n## Next Steps","1. "+.next_steps[]' thisInstance.json >> $thisFile.md
 pandoc -f gfm --toc -s --metadata title="$thisTitle" -o new.md $thisFile.md
 SCRIPT_DIR=$(dirname "$0")
